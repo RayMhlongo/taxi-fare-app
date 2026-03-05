@@ -28,23 +28,11 @@ jobs:
     - name: Install dependencies
       run: npm install
 
-    - name: Build Web Assets
-      run: |
-        mkdir -p www
-        # Copy existing www files if they exist
-        if [ -f index.html ]; then cp index.html www/; fi
-        if [ -f manifest.json ]; then cp manifest.json www/; fi
-        if [ -f service-worker.js ]; then cp service-worker.js www/; fi
-
-    - name: Initialize Capacitor Android
-      run: |
-        npm install @capacitor/core @capacitor/cli
-        npx cap add android --web-dir=www
-
     - name: Sync Capacitor
-      run: npx cap sync android
+      run: |
+        npx cap sync android --no-build
 
-    - name: Build APK
+    - name: Build Debug APK
       run: |
         cd android
         chmod +x gradlew
@@ -57,8 +45,8 @@ jobs:
         path: android/app/build/outputs/apk/debug/app-debug.apk
         retention-days: 30
 
-    - name: Display Build Info
+    - name: Upload Success
+      if: success()
       run: |
         echo "✅ Build completed successfully!"
-        echo "📱 APK: app-debug.apk"
-        ls -lh android/app/build/outputs/apk/debug/app-debug.apk 2>/dev/null || echo "APK output path may vary"
+        echo "📱 APK built: app-debug.apk"
