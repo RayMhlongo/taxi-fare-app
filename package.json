@@ -4,8 +4,8 @@
   "private": true,
   "description": "Professional taxi driver income & expense tracking app for South Africa",
   "scripts": {
-    "cap:add:android": "npx cap add android",
-    "cap:sync": "npx cap sync android",
+    "cap:add:android": "capacitor add android",
+    "cap:sync": "capacitor sync android",
     "apk:debug": "cd android && ./gradlew assembleDebug"
   },
   "dependencies": {
