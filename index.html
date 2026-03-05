@@ -116,6 +116,10 @@ body{font-family:"Inter",sans-serif;background:var(--bg);color:var(--text);displ
 /* CHART */
 .chart-wrap{position:relative;height:200px;margin-bottom:12px}
 .insight{padding:10px 12px;border-radius:10px;background:linear-gradient(135deg,rgba(0,191,165,0.12),rgba(0,137,123,0.2));border:1px solid rgba(0,191,165,0.25);font-size:12px;line-height:1.55}
+.period-row{display:flex;gap:8px;overflow:auto;margin-bottom:12px}
+.chip{padding:7px 12px;border-radius:999px;border:1px solid var(--border);font-size:11px;font-weight:700;color:var(--text-light);background:var(--card);cursor:pointer;white-space:nowrap}
+.chip.active{background:var(--primary);border-color:var(--primary-d);color:#fff}
+.role-badge{padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.2);font-size:10px;font-weight:800;letter-spacing:.4px;text-transform:uppercase}
 .fab{position:fixed;right:16px;bottom:calc(22px + var(--safe-bottom));z-index:220;width:56px;height:56px;border:none;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-d));color:#fff;font-size:28px;line-height:1;cursor:pointer;box-shadow:0 10px 24px rgba(0,191,165,0.35)}
 .fab:active{transform:scale(0.95)}
 @media (min-width:900px){.fab{display:none}}
@@ -139,6 +143,7 @@ body{font-family:"Inter",sans-serif;background:var(--bg);color:var(--text);displ
     <div class="header-subtitle">Track. Analyze. Earn More.</div>
   </div>
   <div class="header-right">
+    <span class="role-badge" id="roleBadge">Owner</span>
     <button class="btn-icon" onclick="toggleDark()" id="darkBtn">🌙</button>
     <button class="btn-icon" onclick="openSettings()">⚙️</button>
   </div>
@@ -158,6 +163,12 @@ body{font-family:"Inter",sans-serif;background:var(--bg);color:var(--text);displ
 
 <!-- DASHBOARD -->
 <div class="screen active" id="sc-dashboard">
+  <div class="period-row" id="periodRow">
+    <button class="chip active" onclick="setPeriod('today', this)">Today</button>
+    <button class="chip" onclick="setPeriod('week', this)">This Week</button>
+    <button class="chip" onclick="setPeriod('month', this)">This Month</button>
+    <button class="chip" onclick="setPeriod('year', this)">This Year</button>
+  </div>
   <div class="stats-grid">
     <div class="stat primary">
       <div class="num" id="today-trips">0</div>
@@ -410,6 +421,27 @@ body{font-family:"Inter",sans-serif;background:var(--bg);color:var(--text);displ
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="overlay" id="onboardingOverlay">
+  <div class="popup">
+    <h2 style="margin-bottom:8px">Welcome to Taxi Fare</h2>
+    <p style="font-size:13px;color:var(--text-light);margin-bottom:12px">Set up your app in 20 seconds for a premium dashboard experience.</p>
+    <div class="fg"><label>Driver Name</label><input id="obName" placeholder="Your name"></div>
+    <div class="fg"><label>Vehicle Plate</label><input id="obPlate" placeholder="e.g. CA123GP"></div>
+    <div class="fg">
+      <label>Role Mode</label>
+      <select id="obRole">
+        <option value="owner">Owner</option>
+        <option value="manager">Manager</option>
+        <option value="driver">Driver</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn btn-secondary" onclick="skipOnboarding()">Skip</button>
+      <button class="btn btn-primary" onclick="finishOnboarding()" style="flex:2">Start Using App</button>
+    </div>
+  </div>
+</div>
+
 
 <script>
 const STORE_KEY = 'taxiFareV1';
@@ -419,7 +451,7 @@ function defaultDB() {
   return {
     trips: [],
     expenses: [],
-    settings: { driverName: '', vehiclePlate: '', driverPhone: '', currency: 'ZAR', darkMode: false }
+    settings: { driverName: '', vehiclePlate: '', driverPhone: '', currency: 'ZAR', darkMode: false, role: 'owner', onboarded: false }
   };
 }
 
@@ -440,6 +472,60 @@ function toggleDark() {
     document.getElementById('darkBtn').textContent = '☀️';
     localStorage.setItem('taxiFare_dark', '1');
   }
+}
+
+let activePeriod = 'today';
+
+function setRoleBadge() {
+  const role = (DB.settings.role || 'owner').toUpperCase();
+  const badge = document.getElementById('roleBadge');
+  if (badge) badge.textContent = role;
+}
+
+function setPeriod(period, btn) {
+  activePeriod = period;
+  document.querySelectorAll('#periodRow .chip').forEach(c => c.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderDashboard();
+}
+
+function shouldIncludeDate(dateStr) {
+  const d = new Date(dateStr);
+  const now = new Date();
+  if (activePeriod === 'today') return d.toDateString() === now.toDateString();
+  if (activePeriod === 'week') {
+    const start = new Date(now); start.setDate(now.getDate() - 6); start.setHours(0,0,0,0);
+    return d >= start;
+  }
+  if (activePeriod === 'month') return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  if (activePeriod === 'year') return d.getFullYear() === now.getFullYear();
+  return true;
+}
+
+function startOnboarding() {
+  if (DB.settings.onboarded) return;
+  document.getElementById('obName').value = DB.settings.driverName || '';
+  document.getElementById('obPlate').value = DB.settings.vehiclePlate || '';
+  document.getElementById('obRole').value = DB.settings.role || 'owner';
+  document.getElementById('onboardingOverlay').classList.add('show');
+}
+
+function finishOnboarding() {
+  DB.settings.driverName = document.getElementById('obName').value.trim();
+  DB.settings.vehiclePlate = document.getElementById('obPlate').value.trim();
+  DB.settings.role = document.getElementById('obRole').value;
+  DB.settings.onboarded = true;
+  saveLocal();
+  setRoleBadge();
+  document.getElementById('onboardingOverlay').classList.remove('show');
+  toast('Setup complete!', 'success');
+}
+
+function skipOnboarding() {
+  DB.settings.onboarded = true;
+  saveLocal();
+  setRoleBadge();
+  document.getElementById('onboardingOverlay').classList.remove('show');
 }
 
 function toast(msg, type='info') {
@@ -464,9 +550,8 @@ function switchTab(tab, btn) {
 
 /* DASHBOARD */
 function renderDashboard() {
-  const today = new Date().toDateString();
-  const todayTrips = DB.trips.filter(t => new Date(t.dateTime).toDateString() === today);
-  const todayExp = DB.expenses.filter(e => new Date(e.date).toDateString() === today);
+  const todayTrips = DB.trips.filter(t => shouldIncludeDate(t.dateTime));
+  const todayExp = DB.expenses.filter(e => shouldIncludeDate(e.date));
   
   const todayIncome = todayTrips.reduce((sum, t) => sum + (t.fare || 0) + (t.tips || 0), 0);
   const todayExpenses = todayExp.reduce((sum, e) => sum + (e.amount || 0), 0);
@@ -747,6 +832,7 @@ function openSettings() {
   document.getElementById('driverName').value = DB.settings.driverName || '';
   document.getElementById('vehiclePlate').value = DB.settings.vehiclePlate || '';
   document.getElementById('driverPhone').value = DB.settings.driverPhone || '';
+  setRoleBadge();
   const settingsBtn = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.textContent.includes('Settings'));
   switchTab('settings', settingsBtn || null);
 }
@@ -755,6 +841,7 @@ function saveSettings() {
   DB.settings.driverName = document.getElementById('driverName').value;
   DB.settings.vehiclePlate = document.getElementById('vehiclePlate').value;
   DB.settings.driverPhone = document.getElementById('driverPhone').value;
+  DB.settings.role = DB.settings.role || 'owner';
   saveLocal();
   toast('Settings saved!', 'success');
 }
@@ -785,7 +872,9 @@ function closeOverlay(id) {
 /* INIT */
 document.getElementById('reportFrom').value = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
 document.getElementById('reportTo').value = new Date().toISOString().split('T')[0];
+setRoleBadge();
 renderDashboard();
+startOnboarding();
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(() => {}));
 }
