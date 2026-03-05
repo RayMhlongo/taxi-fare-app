@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Taxi Fare - Driver Tracking</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#00bfa5">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Taxi Fare">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --primary:#00bfa5; --primary-d:#00897b; --primary-l:#80deea; --primary-xl:#b2dfdb;
+  --accent:#ff6b6b; --accent-d:#d32f2f; --accent-l:#ffcdd2; --accent-xl:#ffebee;
+  --success:#4caf50; --success-d:#388e3c; --success-l:#c8e6c9; --success-xl:#f1f8e9;
+  --warning:#ff9800; --warning-d:#e65100; --warning-l:#ffe0b2; --warning-xl:#fff3e0;
+  --danger:#f44336; --danger-d:#c62828; --danger-l:#ffcdd2; --danger-xl:#ffebee;
+  --info:#2196f3; --info-d:#1565c0; --info-l:#bbdefb; --info-xl:#e3f2fd;
+  --bg:#f8f9fa; --card:#ffffff; --text:#1a1e2e; --text-light:#637081; --border:#e0e0e0;
+  --shadow-s:0 2px 8px rgba(0,0,0,0.08); --shadow-m:0 4px 16px rgba(0,0,0,0.12);
+  --r:12px; --r-s:8px; --safe-bottom:env(safe-area-inset-bottom);
+}
+[data-theme="dark"] {
+  --bg:#0f1419; --card:#1a1e2e; --text:#f0f2f5; --text-light:#a0a8b8;
+  --border:#2d3139; --shadow-s:0 2px 8px rgba(0,0,0,0.3);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{font-family:"Inter",sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;transition:background 0.3s,color 0.3s}
+
+/* HEADER */
+.header{background:linear-gradient(135deg,var(--primary-d),var(--primary));padding:16px 16px calc(16px + var(--safe-top));display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:var(--shadow-m);z-index:10;color:white}
+.header-title{font-weight:700;font-size:20px}
+.header-subtitle{font-size:11px;opacity:0.85;margin-top:2px}
+.header-right{display:flex;gap:10px;align-items:center}
+.btn-icon{background:rgba(255,255,255,0.2);border:none;color:white;width:40px;height:40px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all 0.2s}
+.btn-icon:active{transform:scale(0.9)}
+
+/* NAV */
+.nav{display:flex;background:var(--card);border-bottom:2px solid var(--border);overflow-x:auto;flex-shrink:0}
+.nav-btn{flex:none;padding:12px 16px;font-size:12px;font-weight:600;color:var(--text-light);background:none;border:none;cursor:pointer;border-bottom:3px solid transparent;transition:all 0.2s;white-space:nowrap}
+.nav-btn:hover,.nav-btn.active{color:var(--primary)}
+.nav-btn.active{border-bottom-color:var(--primary)}
+
+/* BODY */
+.body{flex:1;overflow-y:auto;padding-bottom:var(--safe-bottom)}
+.screen{display:none;padding:14px}
+.screen.active{display:block;animation:fadeUp 0.3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* CARD */
+.card{background:var(--card);border-radius:var(--r);padding:16px;margin-bottom:12px;box-shadow:var(--shadow-s);border:1px solid var(--border)}
+.card-title{font-weight:700;font-size:15px;color:var(--primary);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+
+/* BUTTONS */
+.btn{width:100%;padding:12px;border:none;border-radius:var(--r-s);font-family:"Inter",sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn:active{transform:scale(0.98)}
+.btn:hover{transform:translateY(-2px);box-shadow:var(--shadow-m)}
+.btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary-d));color:white}
+.btn-success{background:linear-gradient(135deg,var(--success),var(--success-d));color:white}
+.btn-danger{background:linear-gradient(135deg,var(--danger),var(--danger-d));color:white}
+.btn-secondary{background:var(--card);color:var(--primary);border:2px solid var(--primary)}
+.btn-sm{width:auto;padding:8px 14px;font-size:12px;border-radius:6px}
+
+/* FORMS */
+.fg{margin-bottom:12px}
+.fg label{display:block;font-size:12px;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.fg input,.fg select,.fg textarea{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:var(--r-s);font-family:"Inter",sans-serif;font-size:14px;color:var(--text);background:var(--bg);transition:border 0.15s;outline:none}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--primary);background:var(--card)}
+.fg textarea{resize:none;height:70px}
+.row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}
+.stat{background:var(--card);border-radius:var(--r);padding:14px;text-align:center;box-shadow:var(--shadow-s);border:1px solid var(--border)}
+.stat .num{font-family:"JetBrains Mono",monospace;font-size:24px;font-weight:700;line-height:1}
+.stat .label{font-size:11px;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:0.5px;margin-top:6px}
+.stat.primary .num{color:var(--primary-d)}
+.stat.success .num{color:var(--success-d)}
+.stat.warning .num{color:var(--warning-d)}
+.stat.danger .num{color:var(--danger-d)}
+
+/* TRIP LIST */
+.trip-card{background:var(--card);border-radius:var(--r);padding:12px;margin-bottom:10px;border-left:4px solid var(--primary);box-shadow:var(--shadow-s);cursor:pointer;transition:all 0.2s}
+.trip-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-m)}
+.trip-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.trip-time{font-weight:600;font-size:13px}
+.trip-fare{font-family:"JetBrains Mono",monospace;font-size:16px;font-weight:700;color:var(--success-d)}
+.trip-location{font-size:12px;color:var(--text-light);margin:4px 0}
+.trip-meta{display:flex;gap:12px;font-size:11px;color:var(--text-light)}
+.trip-badge{background:var(--primary-xl);color:var(--primary-d);padding:3px 8px;border-radius:4px;font-size:10px;font-weight:600}
+
+/* OVERLAY */
+.overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:16px}
+.overlay.show{display:flex}
+.popup{background:var(--card);border-radius:20px;padding:24px;max-width:420px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.2);animation:popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);max-height:85vh;overflow-y:auto}
+@keyframes popIn{from{transform:scale(0.8);opacity:0}to{transform:scale(1);opacity:1}}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);background:#1a1e2e;color:white;padding:12px 20px;border-radius:50px;font-weight:600;font-size:13px;box-shadow:var(--shadow-m);z-index:500;transition:transform 0.3s;max-width:85vw}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.success{background:var(--success-d)}
+.toast.warning{background:var(--warning-d)}
+.toast.danger{background:var(--danger-d)}
+
+/* CHART */
+.chart-wrap{position:relative;height:200px;margin-bottom:12px}
+
+/* EMPTY */
+.empty{text-align:center;padding:32px 20px;color:var(--text-light)}
+.empty-icon{font-size:48px;margin-bottom:12px}
+.empty-text{font-size:14px}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <div class="header-title">💰 Taxi Fare</div>
+    <div class="header-subtitle">Track. Analyze. Earn More.</div>
+  </div>
+  <div class="header-right">
+    <button class="btn-icon" onclick="toggleDark()" id="darkBtn">🌙</button>
+    <button class="btn-icon" onclick="openSettings()">⚙️</button>
+  </div>
+</div>
+
+<!-- NAV -->
+<div class="nav">
+  <button class="nav-btn active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+  <button class="nav-btn" onclick="switchTab('trips')">🚕 Trips</button>
+  <button class="nav-btn" onclick="switchTab('expenses')">💸 Expenses</button>
+  <button class="nav-btn" onclick="switchTab('reports')">📈 Reports</button>
+  <button class="nav-btn" onclick="switchTab('settings')">⚙️ Settings</button>
+</div>
+
+<!-- BODY -->
+<div class="body">
+
+<!-- DASHBOARD -->
+<div class="screen active" id="sc-dashboard">
+  <div class="stats-grid">
+    <div class="stat primary">
+      <div class="num" id="today-trips">0</div>
+      <div class="label">Today's Trips</div>
+    </div>
+    <div class="stat success">
+      <div class="num" id="today-income">R0</div>
+      <div class="label">Today Income</div>
+    </div>
+    <div class="stat warning">
+      <div class="num" id="today-expenses">R0</div>
+      <div class="label">Today Expenses</div>
+    </div>
+    <div class="stat primary">
+      <div class="num" id="today-net">R0</div>
+      <div class="label">Today Net</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📊 This Month Summary</div>
+    <div class="stats-grid">
+      <div style="background:var(--success-xl);padding:12px;border-radius:var(--r-s);text-align:center">
+        <div style="font-size:18px;font-weight:700;color:var(--success-d)" id="month-income">R0</div>
+        <div style="font-size:11px;color:var(--success-d);margin-top:4px;font-weight:600">Total Income</div>
+      </div>
+      <div style="background:var(--danger-xl);padding:12px;border-radius:var(--r-s);text-align:center">
+        <div style="font-size:18px;font-weight:700;color:var(--danger-d)" id="month-expenses">R0</div>
+        <div style="font-size:11px;color:var(--danger-d);margin-top:4px;font-weight:600">Total Expenses</div>
+      </div>
+      <div style="background:var(--primary-xl);padding:12px;border-radius:var(--r-s);text-align:center;grid-column:1/-1">
+        <div style="font-size:20px;font-weight:800;color:var(--primary-d)" id="month-net">R0</div>
+        <div style="font-size:11px;color:var(--primary-d);margin-top:4px;font-weight:600">Monthly Net Profit</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📈 Income Trend</div>
+    <div class="chart-wrap"><canvas id="chartIncom"></canvas></div>
+  </div>
+
+  <button class="btn btn-primary" onclick="openAddTrip()" style="margin-bottom:16px">
+    <span>➕</span> <span>Log New Trip</span>
+  </button>
+</div>
+
+<!-- TRIPS -->
+<div class="screen" id="sc-trips">
+  <div style="margin-bottom:14px">
+    <button class="btn btn-primary" onclick="openAddTrip()">➕ Log Trip</button>
+  </div>
+  <div id="tripsList"></div>
+  <div id="tripsEmpty" class="empty" style="display:none">
+    <div class="empty-icon">🚕</div>
+    <div class="empty-text">No trips logged yet. Start tracking your earnings!</div>
+  </div>
+</div>
+
+<!-- EXPENSES -->
+<div class="screen" id="sc-expenses">
+  <div style="margin-bottom:14px">
+    <button class="btn btn-primary" onclick="openAddExpense()">➕ Add Expense</button>
+  </div>
+  <div id="expensesList"></div>
+  <div id="expensesEmpty" class="empty" style="display:none">
+    <div class="empty-icon">💸</div>
+    <div class="empty-text">No expenses logged yet.</div>
+  </div>
+</div>
+
+<!-- REPORTS -->
+<div class="screen" id="sc-reports">
+  <div class="card">
+    <div class="card-title">📅 Select Period</div>
+    <div class="row-2">
+      <div class="fg">
+        <label>From Date</label>
+        <input type="date" id="reportFrom" onchange="generateReport()">
+      </div>
+      <div class="fg">
+        <label>To Date</label>
+        <input type="date" id="reportTo" onchange="generateReport()">
+      </div>
+    </div>
+  </div>
+  <div id="reportContent"></div>
+  <button class="btn btn-success" onclick="exportToCSV()" style="margin-top:12px">📥 Export to Excel</button>
+</div>
+
+<!-- SETTINGS -->
+<div class="screen" id="sc-settings">
+  <div class="card">
+    <div class="card-title">👤 Driver Info</div>
+    <div class="fg">
+      <label>Full Name</label>
+      <input type="text" id="driverName" placeholder="Your name">
+    </div>
+    <div class="fg">
+      <label>Vehicle License Plate</label>
+      <input type="text" id="vehiclePlate" placeholder="e.g. ABC123GP">
+    </div>
+    <div class="fg">
+      <label>Phone Number</label>
+      <input type="tel" id="driverPhone" placeholder="+27 72 123 4567">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">⚙️ Preferences</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
+      <span style="font-weight:600">Dark Mode</span>
+      <select id="darkMode" onchange="setDarkMode(this.value)">
+        <option value="off">Off</option>
+        <option value="on">On</option>
+      </select>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0">
+      <span style="font-weight:600">Currency</span>
+      <select id="currency" onchange="setCurrency(this.value)">
+        <option value="ZAR">ZAR (R)</option>
+        <option value="USD">USD ($)</option>
+        <option value="EUR">EUR (€)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📊 Data Management</div>
+    <button class="btn btn-secondary btn-sm" onclick="backupData()" style="margin-bottom:8px">💾 Backup Data</button>
+    <button class="btn btn-secondary btn-sm" onclick="clearAllData()">🗑️ Clear All Data</button>
+  </div>
+
+  <button class="btn btn-primary" onclick="saveSettings()" style="margin-top:16px">✅ Save Settings</button>
+</div>
+
+</div>
+
+<!-- POPUPS -->
+<div class="overlay" id="tripOverlay">
+  <div class="popup">
+    <h2 style="margin-bottom:16px;color:var(--primary)">🚕 Log Trip</h2>
+    <div class="fg">
+      <label>Date & Time</label>
+      <input type="datetime-local" id="tripDateTime">
+    </div>
+    <div class="row-2">
+      <div class="fg">
+        <label>Pickup Location</label>
+        <input type="text" id="tripPickup" placeholder="e.g. Sandton">
+      </div>
+      <div class="fg">
+        <label>Dropoff Location</label>
+        <input type="text" id="tripDropoff" placeholder="e.g. Jhb">
+      </div>
+    </div>
+    <div class="row-2">
+      <div class="fg">
+        <label>Distance (km)</label>
+        <input type="number" id="tripDistance" placeholder="0.0" step="0.1">
+      </div>
+      <div class="fg">
+        <label>Duration (min)</label>
+        <input type="number" id="tripDuration" placeholder="0" step="1">
+      </div>
+    </div>
+    <div class="row-2">
+      <div class="fg">
+        <label>Fare (R)</label>
+        <input type="number" id="tripFare" placeholder="0.00" step="0.01">
+      </div>
+      <div class="fg">
+        <label>Tips (R)</label>
+        <input type="number" id="tripTips" placeholder="0.00" step="0.01">
+      </div>
+    </div>
+    <div class="fg">
+      <label>Payment Method</label>
+      <select id="tripPayment">
+        <option value="cash">Cash</option>
+        <option value="card">Card</option>
+        <option value="mobile">Mobile Payment</option>
+        <option value="mixed">Mixed</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Passenger Name (Optional)</label>
+      <input type="text" id="tripPassenger" placeholder="Customer name">
+    </div>
+    <div class="fg">
+      <label>Notes</label>
+      <textarea id="tripNotes" placeholder="Any notes..."></textarea>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn btn-secondary" onclick="closeOverlay('tripOverlay')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTrip()" style="flex:2">✅ Save Trip</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="expenseOverlay">
+  <div class="popup">
+    <h2 style="margin-bottom:16px;color:var(--primary)">💸 Add Expense</h2>
+    <div class="fg">
+      <label>Date</label>
+      <input type="date" id="expenseDate">
+    </div>
+    <div class="fg">
+      <label>Category</label>
+      <select id="expenseCategory">
+        <option value="fuel">⛽ Fuel</option>
+        <option value="maintenance">🔧 Maintenance</option>
+        <option value="toll">🛣️ Toll</option>
+        <option value="parking">🅿️ Parking</option>
+        <option value="cleaning">🧼 Cleaning</option>
+        <option value="insurance">📋 Insurance</option>
+        <option value="registration">📝 Registration</option>
+        <option value="other">📌 Other</option>
+      </select>
+    </div>
+    <div class="row-2">
+      <div class="fg">
+        <label>Amount (R)</label>
+        <input type="number" id="expenseAmount" placeholder="0.00" step="0.01">
+      </div>
+      <div class="fg">
+        <label>Quantity</label>
+        <input type="number" id="expenseQty" placeholder="1" value="1">
+      </div>
+    </div>
+    <div class="fg">
+      <label>Description</label>
+      <input type="text" id="expenseDesc" placeholder="e.g. Shell - 50L">
+    </div>
+    <div class="fg">
+      <label>Receipt</label>
+      <input type="file" id="expenseReceipt" accept="image/*">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn btn-secondary" onclick="closeOverlay('expenseOverlay')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveExpense()" style="flex:2">✅ Save Expense</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORE_KEY = 'taxiFareV1';
+let DB = (() => { try { const r = localStorage.getItem(STORE_KEY); return r ? JSON.parse(r) : defaultDB(); } catch(e) { return defaultDB(); } })();
+
+function defaultDB() {
+  return {
+    trips: [],
+    expenses: [],
+    settings: { driverName: '', vehiclePlate: '', driverPhone: '', currency: 'ZAR', darkMode: false }
+  };
+}
+
+function saveLocal() { try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch(e) {} }
+
+/* THEME */
+const DARK = localStorage.getItem('taxiFare_dark') === '1';
+if (DARK) { document.documentElement.setAttribute('data-theme','dark'); document.getElementById('darkBtn').textContent = '☀️'; }
+
+function toggleDark() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  if (isDark) {
+    document.documentElement.removeAttribute('data-theme');
+    document.getElementById('darkBtn').textContent = '🌙';
+    localStorage.setItem('taxiFare_dark', '0');
+  } else {
+    document.documentElement.setAttribute('data-theme','dark');
+    document.getElementById('darkBtn').textContent = '☀️';
+    localStorage.setItem('taxiFare_dark', '1');
+  }
+}
+
+function toast(msg, type='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type;
+  t.classList.add('show');
+  setTimeout(() => { t.classList.remove('show'); }, 3000);
+}
+
+/* NAVIGATION */
+function switchTab(tab) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('sc-' + tab).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  if (tab === 'dashboard') renderDashboard();
+  if (tab === 'trips') renderTrips();
+  if (tab === 'expenses') renderExpenses();
+  if (tab === 'reports') generateReport();
+}
+
+/* DASHBOARD */
+function renderDashboard() {
+  const today = new Date().toDateString();
+  const todayTrips = DB.trips.filter(t => new Date(t.dateTime).toDateString() === today);
+  const todayExp = DB.expenses.filter(e => new Date(e.date).toDateString() === today);
+  
+  const todayIncome = todayTrips.reduce((sum, t) => sum + (t.fare || 0) + (t.tips || 0), 0);
+  const todayExpenses = todayExp.reduce((sum, e) => sum + (e.amount || 0), 0);
+  
+  document.getElementById('today-trips').textContent = todayTrips.length;
+  document.getElementById('today-income').textContent = 'R' + todayIncome.toFixed(2);
+  document.getElementById('today-expenses').textContent = 'R' + todayExpenses.toFixed(2);
+  document.getElementById('today-net').textContent = 'R' + (todayIncome - todayExpenses).toFixed(2);
+  
+  // Month stats
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthTrips = DB.trips.filter(t => new Date(t.dateTime) >= monthStart);
+  const monthExp = DB.expenses.filter(e => new Date(e.date) >= monthStart);
+  
+  const monthIncome = monthTrips.reduce((sum, t) => sum + (t.fare || 0) + (t.tips || 0), 0);
+  const monthExpenses = monthExp.reduce((sum, e) => sum + (e.amount || 0), 0);
+  
+  document.getElementById('month-income').textContent = 'R' + monthIncome.toFixed(2);
+  document.getElementById('month-expenses').textContent = 'R' + monthExpenses.toFixed(2);
+  document.getElementById('month-net').textContent = 'R' + (monthIncome - monthExpenses).toFixed(2);
+  
+  renderChart();
+}
+
+function renderChart() {
+  const ctx = document.getElementById('chartIncome');
+  if (!ctx) return;
+  const last7Days = Array.from({length:7}, (_,i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6-i));
+    return d.toDateString();
+  });
+  const data = last7Days.map(day => {
+    return DB.trips.filter(t => new Date(t.dateTime).toDateString() === day)
+      .reduce((sum, t) => sum + (t.fare || 0) + (t.tips || 0), 0);
+  });
+  if (window.incomeChart) window.incomeChart.destroy();
+  window.incomeChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: last7Days.map(d => new Date(d).toLocaleDateString('en-ZA', {weekday:'short', month:'short', day:'numeric'})),
+      datasets: [{label:'Income (R)', data, backgroundColor:'#00bfa5', borderRadius:6}]
+    },
+    options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}
+  });
+}
+
+/* TRIPS */
+function openAddTrip() {
+  const now = new Date().toISOString().slice(0,16);
+  document.getElementById('tripDateTime').value = now;
+  document.getElementById('tripPickup').value = '';
+  document.getElementById('tripDropoff').value = '';
+  document.getElementById('tripDistance').value = '';
+  document.getElementById('tripDuration').value = '';
+  document.getElementById('tripFare').value = '';
+  document.getElementById('tripTips').value = '';
+  document.getElementById('tripPassenger').value = '';
+  document.getElementById('tripNotes').value = '';
+  document.getElementById('tripOverlay').classList.add('show');
+}
+
+function saveTrip() {
+  const trip = {
+    id: 'T' + Date.now(),
+    dateTime: document.getElementById('tripDateTime').value,
+    pickup: document.getElementById('tripPickup').value || 'N/A',
+    dropoff: document.getElementById('tripDropoff').value || 'N/A',
+    distance: parseFloat(document.getElementById('tripDistance').value) || 0,
+    duration: parseInt(document.getElementById('tripDuration').value) || 0,
+    fare: parseFloat(document.getElementById('tripFare').value) || 0,
+    tips: parseFloat(document.getElementById('tripTips').value) || 0,
+    payment: document.getElementById('tripPayment').value,
+    passenger: document.getElementById('tripPassenger').value || 'Unknown',
+    notes: document.getElementById('tripNotes').value || ''
+  };
+  if (!trip.dateTime || !trip.fare) { toast('Please fill required fields',  'warning'); return; }
+  DB.trips.push(trip);
+  saveLocal();
+  closeOverlay('tripOverlay');
+  renderTrips();
+  renderDashboard();
+  toast('Trip saved!', 'success');
+}
+
+function renderTrips() {
+  const trips = DB.trips.sort((a,b) => new Date(b.dateTime) - new Date(a.dateTime));
+  const el = document.getElementById('tripsList');
+  if (!trips.length) {
+    document.getElementById('tripsEmpty').style.display = 'block';
+    el.innerHTML = '';
+    return;
+  }
+  document.getElementById('tripsEmpty').style.display = 'none';
+  el.innerHTML = trips.map(t => {
+    const date = new Date(t.dateTime).toLocaleDateString('en-ZA');
+    const time = new Date(t.dateTime).toLocaleTimeString('en-ZA', {hour:'2-digit', minute:'2-digit'});
+    const total = (t.fare + t.tips).toFixed(2);
+    return `<div class="trip-card">
+      <div class="trip-header">
+        <div style="flex:1">
+          <div class="trip-time">${date} @ ${time}</div>
+          <div class="trip-location">📍 ${t.pickup} → ${t.dropoff}</div>
+        </div>
+        <div class="trip-fare">R${total}</div>
+      </div>
+      <div class="trip-meta">
+        <span>🚗 ${t.distance}km</span>
+        <span>⏱️ ${t.duration}min</span>
+        <span class="trip-badge">${t.payment.toUpperCase()}</span>
+        <span style="flex:1;text-align:right;cursor:pointer" onclick="deleteTrip('${t.id}')">🗑️</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function deleteTrip(id) {
+  DB.trips = DB.trips.filter(t => t.id !== id);
+  saveLocal();
+  renderTrips();
+  renderDashboard();
+  toast('Trip deleted', 'info');
+}
+
+/* EXPENSES */
+function openAddExpense() {
+  document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('expenseCategory').value = 'fuel';
+  document.getElementById('expenseAmount').value = '';
+  document.getElementById('expenseQty').value = '1';
+  document.getElementById('expenseDesc').value = '';
+  document.getElementById('expenseReceipt').value = '';
+  document.getElementById('expenseOverlay').classList.add('show');
+}
+
+function saveExpense() {
+  const expense = {
+    id: 'E' + Date.now(),
+    date: document.getElementById('expenseDate').value,
+    category: document.getElementById('expenseCategory').value,
+    amount: parseFloat(document.getElementById('expenseAmount').value) || 0,
+    qty: parseInt(document.getElementById('expenseQty').value) || 1,
+    description: document.getElementById('expenseDesc').value || 'N/A'
+  };
+  if (!expense.date || !expense.amount) { toast('Please fill required fields', 'warning'); return; }
+  DB.expenses.push(expense);
+  saveLocal();
+  closeOverlay('expenseOverlay');
+  renderExpenses();
+  renderDashboard();
+  toast('Expense saved!', 'success');
+}
+
+function renderExpenses() {
+  const expenses = DB.expenses.sort((a,b) => new Date(b.date) - new Date(a.date));
+  const el = document.getElementById('expensesList');
+  if (!expenses.length) {
+    document.getElementById('expensesEmpty').style.display = 'block';
+    el.innerHTML = '';
+    return;
+  }
+  document.getElementById('expensesEmpty').style.display = 'none';
+  const categories = {'fuel':'⛽','maintenance':'🔧','toll':'🛣️','parking':'🅿️','cleaning':'🧼','insurance':'📋','registration':'📝','other':'📌'};
+  el.innerHTML = expenses.map(e => {
+    const date = new Date(e.date).toLocaleDateString('en-ZA');
+    return `<div class="trip-card" style="border-left-color:var(--danger)">
+      <div class="trip-header">
+        <div style="flex:1">
+          <div class="trip-time">${date}</div>
+          <div class="trip-location">${categories[e.category]} ${e.category.toUpperCase()}</div>
+          <div class="trip-location" style="font-size:12px">${e.description}</div>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:var(--danger-d)">R${e.amount.toFixed(2)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* REPORTS & EXPORT */
+function generateReport() {
+  const from = document.getElementById('reportFrom').value || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+  const to = document.getElementById('reportTo').value || new Date().toISOString().split('T')[0];
+  
+  const trips = DB.trips.filter(t => t.dateTime >= from && t.dateTime <= to);
+  const expenses = DB.expenses.filter(e => e.date >= from && e.date <= to);
+  
+  const income = trips.reduce((sum, t) => sum + (t.fare || 0) + (t.tips || 0), 0);
+  const totalExp = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+  const profit = income - totalExp;
+  
+  const report = `
+    <div class="card">
+      <div class="card-title">📊 Report Summary</div>
+      <div style="padding:12px;background:var(--bg);border-radius:var(--r-s);margin-bottom:12px;font-size:12px">
+        <div style="margin-bottom:8px">Period: ${from} to ${to}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+          <div style="background:var(--success-xl);padding:10px;border-radius:6px;text-align:center">
+            <div style="font-size:16px;font-weight:700;color:var(--success-d)">R${income.toFixed(2)}</div>
+            <div style="font-size:10px;color:var(--success-d);margin-top:4px">Total Income</div>
+          </div>
+          <div style="background:var(--danger-xl);padding:10px;border-radius:6px;text-align:center">
+            <div style="font-size:16px;font-weight:700;color:var(--danger-d)">R${totalExp.toFixed(2)}</div>
+            <div style="font-size:10px;color:var(--danger-d);margin-top:4px">Expenses</div>
+          </div>
+          <div style="background:var(--primary-xl);padding:10px;border-radius:6px;text-align:center;grid-column:1/-1">
+            <div style="font-size:18px;font-weight:800;color:var(--primary-d)">R${profit.toFixed(2)}</div>
+            <div style="font-size:10px;color:var(--primary-d);margin-top:4px">Net Profit</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">🚕 Trip Analytics</div>
+      <div style="font-size:12px;line-height:1.8">
+        <div>Trips: ${trips.length}</div>
+        <div>Avg Fare: R${trips.length ? (trips.reduce((s,t) => s + t.fare, 0) / trips.length).toFixed(2) : '0'}</div>
+        <div>Total Distance: ${trips.reduce((s,t) => s + t.distance, 0).toFixed(1)}km</div>
+        <div>Total Duration: ${trips.reduce((s,t) => s + t.duration, 0)}min</div>
+      </div>
+    </div>
+  `;
+  document.getElementById('reportContent').innerHTML = report;
+}
+
+function exportToCSV() {
+  const from = document.getElementById('reportFrom').value || '2000-01-01';
+  const to = document.getElementById('reportTo').value || new Date().toISOString().split('T')[0];
+  
+  const trips = DB.trips.filter(t => t.dateTime >= from && t.dateTime <= to);
+  const expenses = DB.expenses.filter(e => e.date >= from && e.date <= to);
+  
+  let csv = 'TAXI FARE - INCOME & EXPENSE REPORT\\n\\n';
+  csv += `Driver: ${DB.settings.driverName}\\nPlate: ${DB.settings.vehiclePlate}\\nPeriod: ${from} to ${to}\\n\\n`;
+  csv += 'TRIPS\\nDate,Time,Pickup,Dropoff,Distance,Duration,Fare,Tips,Total,Payment\\n';
+  trips.forEach(t => {
+    const dt = new Date(t.dateTime);
+    csv += `${dt.toLocaleDateString('en-ZA')},${dt.toLocaleTimeString('en-ZA')},${t.pickup},${t.dropoff},${t.distance},${t.duration},${t.fare},${t.tips},${t.fare+t.tips},${t.payment}\\n`;
+  });
+  
+  csv += '\\nEXPENSES\\nDate,Category,Amount,Qty,Description\\n';
+  expenses.forEach(e => {
+    csv += `${e.date},${e.category},${e.amount},${e.qty},"${e.description}"\\n`;
+  });
+  
+  const income = trips.reduce((s,t) => s + t.fare + t.tips, 0);
+  const totalExp = expenses.reduce((s,e) => s + e.amount, 0);
+  csv += `\\nSUMMARY\\nTotal Income,R${income.toFixed(2)}\\nTotal Expenses,R${totalExp.toFixed(2)}\\nNet Profit,R${(income-totalExp).toFixed(2)}\\n`;
+  
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Taxi-Fare-Report-${from}-to-${to}.csv`;
+  a.click();
+  toast('Report exported!', 'success');
+}
+
+/* SETTINGS */
+function openSettings() {
+  document.getElementById('driverName').value = DB.settings.driverName || '';
+  document.getElementById('vehiclePlate').value = DB.settings.vehiclePlate || '';
+  document.getElementById('driverPhone').value = DB.settings.driverPhone || '';
+  switchTab('settings');
+}
+
+function saveSettings() {
+  DB.settings.driverName = document.getElementById('driverName').value;
+  DB.settings.vehiclePlate = document.getElementById('vehiclePlate').value;
+  DB.settings.driverPhone = document.getElementById('driverPhone').value;
+  saveLocal();
+  toast('Settings saved!', 'success');
+}
+
+function backupData() {
+  const blob = new Blob([JSON.stringify(DB, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Taxi-Fare-Backup-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  toast('Backup created!', 'success');
+}
+
+function clearAllData() {
+  if (confirm('Are you sure? This cannot be undone.')) {
+    DB = defaultDB();
+    saveLocal();
+    toast('All data cleared', 'info');
+    renderDashboard();
+  }
+}
+
+function closeOverlay(id) {
+  document.getElementById(id).classList.remove('show');
+}
+
+/* INIT */
+document.getElementById('reportFrom').value = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+document.getElementById('reportTo').value = new Date().toISOString().split('T')[0];
+renderDashboard();
+</script>
+</body>
+</html>
