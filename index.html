@@ -10,6 +10,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Taxi Fare">
+<link rel="apple-touch-icon" href="icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192x192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512x512.png">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -23,6 +26,7 @@
   --info:#2196f3; --info-d:#1565c0; --info-l:#bbdefb; --info-xl:#e3f2fd;
   --bg:#f8f9fa; --card:#ffffff; --text:#1a1e2e; --text-light:#637081; --border:#e0e0e0;
   --shadow-s:0 2px 8px rgba(0,0,0,0.08); --shadow-m:0 4px 16px rgba(0,0,0,0.12);
+  --safe-top:env(safe-area-inset-top);
   --r:12px; --r-s:8px; --safe-bottom:env(safe-area-inset-bottom);
 }
 [data-theme="dark"] {
@@ -111,6 +115,14 @@ body{font-family:"Inter",sans-serif;background:var(--bg);color:var(--text);displ
 
 /* CHART */
 .chart-wrap{position:relative;height:200px;margin-bottom:12px}
+.insight{padding:10px 12px;border-radius:10px;background:linear-gradient(135deg,rgba(0,191,165,0.12),rgba(0,137,123,0.2));border:1px solid rgba(0,191,165,0.25);font-size:12px;line-height:1.55}
+.fab{position:fixed;right:16px;bottom:calc(22px + var(--safe-bottom));z-index:220;width:56px;height:56px;border:none;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-d));color:#fff;font-size:28px;line-height:1;cursor:pointer;box-shadow:0 10px 24px rgba(0,191,165,0.35)}
+.fab:active{transform:scale(0.95)}
+@media (min-width:900px){.fab{display:none}}
+@media (max-width:420px){
+  .row-2,.row-3{grid-template-columns:1fr}
+  .stats-grid{grid-template-columns:1fr}
+}
 
 /* EMPTY */
 .empty{text-align:center;padding:32px 20px;color:var(--text-light)}
@@ -134,11 +146,11 @@ body{font-family:"Inter",sans-serif;background:var(--bg);color:var(--text);displ
 
 <!-- NAV -->
 <div class="nav">
-  <button class="nav-btn active" onclick="switchTab('dashboard')">📊 Dashboard</button>
-  <button class="nav-btn" onclick="switchTab('trips')">🚕 Trips</button>
-  <button class="nav-btn" onclick="switchTab('expenses')">💸 Expenses</button>
-  <button class="nav-btn" onclick="switchTab('reports')">📈 Reports</button>
-  <button class="nav-btn" onclick="switchTab('settings')">⚙️ Settings</button>
+  <button class="nav-btn active" onclick="switchTab('dashboard', this)">📊 Dashboard</button>
+  <button class="nav-btn" onclick="switchTab('trips', this)">🚕 Trips</button>
+  <button class="nav-btn" onclick="switchTab('expenses', this)">💸 Expenses</button>
+  <button class="nav-btn" onclick="switchTab('reports', this)">📈 Reports</button>
+  <button class="nav-btn" onclick="switchTab('settings', this)">⚙️ Settings</button>
 </div>
 
 <!-- BODY -->
@@ -185,13 +197,19 @@ body{font-family:"Inter",sans-serif;background:var(--bg);color:var(--text);displ
 
   <div class="card">
     <div class="card-title">📈 Income Trend</div>
-    <div class="chart-wrap"><canvas id="chartIncom"></canvas></div>
+    <div class="chart-wrap"><canvas id="chartIncome"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🧠 Smart Insight</div>
+    <div class="insight" id="aiInsight">Log more trips to get personalized business insights.</div>
   </div>
 
   <button class="btn btn-primary" onclick="openAddTrip()" style="margin-bottom:16px">
     <span>➕</span> <span>Log New Trip</span>
   </button>
 </div>
+<button class="fab" onclick="openAddTrip()" aria-label="Log trip">+</button>
 
 <!-- TRIPS -->
 <div class="screen" id="sc-trips">
@@ -433,11 +451,11 @@ function toast(msg, type='info') {
 }
 
 /* NAVIGATION */
-function switchTab(tab) {
+function switchTab(tab, btn) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('sc-' + tab).classList.add('active');
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  if (btn) btn.classList.add('active');
   if (tab === 'dashboard') renderDashboard();
   if (tab === 'trips') renderTrips();
   if (tab === 'expenses') renderExpenses();
@@ -470,8 +488,25 @@ function renderDashboard() {
   document.getElementById('month-income').textContent = 'R' + monthIncome.toFixed(2);
   document.getElementById('month-expenses').textContent = 'R' + monthExpenses.toFixed(2);
   document.getElementById('month-net').textContent = 'R' + (monthIncome - monthExpenses).toFixed(2);
+  renderInsight({ monthIncome, monthExpenses, todayTrips: todayTrips.length, monthTrips: monthTrips.length });
   
   renderChart();
+}
+
+function renderInsight({ monthIncome, monthExpenses, todayTrips, monthTrips }) {
+  const insight = document.getElementById('aiInsight');
+  if (!insight) return;
+  const profit = monthIncome - monthExpenses;
+  const avgTrip = monthTrips ? monthIncome / monthTrips : 0;
+  if (monthTrips < 10) {
+    insight.textContent = `You only logged ${monthTrips} trips this month. Track every trip to expose hidden profit leaks.`;
+    return;
+  }
+  if (profit < 0) {
+    insight.textContent = `Expenses are above revenue by R${Math.abs(profit).toFixed(2)}. Focus on fuel, maintenance, and low-margin routes first.`;
+    return;
+  }
+  insight.textContent = `Healthy month: R${profit.toFixed(2)} net profit, average R${avgTrip.toFixed(2)} per trip. Today you logged ${todayTrips} trips.`;
 }
 
 function renderChart() {
@@ -712,7 +747,8 @@ function openSettings() {
   document.getElementById('driverName').value = DB.settings.driverName || '';
   document.getElementById('vehiclePlate').value = DB.settings.vehiclePlate || '';
   document.getElementById('driverPhone').value = DB.settings.driverPhone || '';
-  switchTab('settings');
+  const settingsBtn = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.textContent.includes('Settings'));
+  switchTab('settings', settingsBtn || null);
 }
 
 function saveSettings() {
@@ -750,6 +786,9 @@ function closeOverlay(id) {
 document.getElementById('reportFrom').value = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
 document.getElementById('reportTo').value = new Date().toISOString().split('T')[0];
 renderDashboard();
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(() => {}));
+}
 </script>
 </body>
 </html>

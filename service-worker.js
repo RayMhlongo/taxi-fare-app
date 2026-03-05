@@ -1,10 +1,15 @@
-const CACHE_NAME = 'taxi-fare-v1';
+const CACHE_NAME = 'taxi-fare-v2';
 const OFFLINE_FALLBACK = new URL('./index.html', self.location.href).toString();
 
 self.addEventListener('install', event => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(['./index.html', './manifest.json']).catch(() => {}))
+    caches.open(CACHE_NAME).then(cache => cache.addAll([
+      './index.html',
+      './manifest.json',
+      './icons/icon-192x192.png',
+      './icons/icon-512x512.png'
+    ]).catch(() => {}))
   );
 });
 
