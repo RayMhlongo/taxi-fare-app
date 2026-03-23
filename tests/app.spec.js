@@ -35,6 +35,68 @@ async function closeModal(page) {
   await page.locator("[data-close-modal]").last().click();
 }
 
+async function createCustomer(page, overrides = {}) {
+  await page.getByRole("button", { name: "Customers" }).click();
+  await page.locator("#openCustomerModalBtn").click();
+  await page.locator("#customerNameInput").fill(overrides.name || "Acme Shuttle");
+  await page.locator("#customerPhoneInput").fill(overrides.phone || "+27 72 123 4567");
+  await page.locator("#customerEmailInput").fill(overrides.email || "accounts@acme.test");
+  await page.locator("#customerCompanyInput").fill(overrides.company || "Acme Logistics");
+  await page.locator("#customerRouteNotesInput").fill(overrides.routeNotes || "Rosebank to Sandton");
+  if (overrides.billingType) {
+    await page.locator("#customerBillingTypeInput").selectOption(overrides.billingType);
+  }
+  await page.getByRole("button", { name: "Save customer" }).click();
+  await expect(page.getByText("Customer saved.")).toBeVisible();
+}
+
+async function createTrip(page, overrides = {}) {
+  await page.getByRole("button", { name: "Trips" }).click();
+  await page.locator("#openTripModalBtn").click();
+  await page.locator("#tripPickupInput").fill(overrides.pickup || "Rosebank");
+  await page.locator("#tripDropoffInput").fill(overrides.dropoff || "Sandton");
+  await page.locator("#tripPassengerInput").fill(overrides.passenger || "Monthly Account");
+  if (overrides.customerLabel) {
+    await page.locator("#tripCustomerSelect").selectOption({ label: overrides.customerLabel });
+  }
+  if (overrides.paymentMethod) {
+    await page.locator("#tripPaymentInput").selectOption(overrides.paymentMethod);
+  }
+  await page.locator("#tripFareInput").fill(overrides.fare || "450");
+  if (overrides.paymentMethod === "mixed" && overrides.cashPortion) {
+    await page.locator("#tripCashPortionInput").fill(overrides.cashPortion);
+  }
+  await page.getByRole("button", { name: "Save trip" }).click();
+  await expect(page.getByText(overrides.updated ? "Trip updated." : "Trip saved.")).toBeVisible();
+}
+
+async function setupNativeExportMock(page) {
+  await page.evaluate(() => {
+    window.__nativeExportCalls = [];
+
+    const filesystem = {
+      checkPermissions: async () => ({ publicStorage: "granted" }),
+      requestPermissions: async () => ({ publicStorage: "granted" }),
+      writeFile: async (options) => {
+        window.__nativeExportCalls.push({ type: "writeFile", options });
+        return { uri: `file:///mock/${options.path}` };
+      },
+    };
+
+    const share = {
+      share: async (options) => {
+        window.__nativeExportCalls.push({ type: "share", options });
+        return { activityType: "mock" };
+      },
+    };
+
+    window.Capacitor = {
+      isNativePlatform: () => true,
+      registerPlugin: (name) => (name === "Filesystem" ? filesystem : share),
+    };
+  });
+}
+
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.clear();
@@ -46,7 +108,7 @@ test("core navigation and action buttons respond", async ({ page }) => {
   const errors = trackClientErrors(page);
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Taxi Fare" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "InsightRide" })).toBeVisible();
 
   await page.locator("#dashboardAddTripBtn").click();
   await expect(page.locator("#tripModal")).toBeVisible();
@@ -90,7 +152,7 @@ test("core navigation and action buttons respond", async ({ page }) => {
   const backupDownload = page.waitForEvent("download");
   await page.locator("#exportBackupBtn").click();
   const backup = await backupDownload;
-  expect(backup.suggestedFilename()).toMatch(/taxi-fare-backup-.*\.json/);
+  expect(backup.suggestedFilename()).toMatch(/insight-ride-backup-.*\.json/);
 
   await expectNoClientErrors(errors);
 });
@@ -100,38 +162,21 @@ test("customer linked trip can be saved, invoiced, and exported as pdf", async (
 
   await page.goto("/");
 
-  await page.getByRole("button", { name: "Customers" }).click();
-  await page.locator("#openCustomerModalBtn").click();
-  await page.locator("#customerNameInput").fill("Acme Shuttle");
-  await page.locator("#customerPhoneInput").fill("+27 72 123 4567");
-  await page.locator("#customerEmailInput").fill("accounts@acme.test");
-  await page.locator("#customerCompanyInput").fill("Acme Logistics");
-  await page.locator("#customerRouteNotesInput").fill("Rosebank to Sandton");
-  await page.getByRole("button", { name: "Save customer" }).click();
-  await expect(page.getByText("Customer saved.")).toBeVisible();
+  await createCustomer(page);
   await expect(page.getByRole("heading", { name: "Acme Shuttle" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Trips" }).click();
-  await page.locator("#openTripModalBtn").click();
-  await page.locator("#tripPickupInput").fill("Rosebank");
-  await page.locator("#tripDropoffInput").fill("Sandton");
-  await page.locator("#tripPassengerInput").fill("Monthly Account");
-  await page.locator("#tripCustomerSelect").selectOption({ label: "Acme Shuttle (Monthly customer)" });
-  await page.locator("#tripDistanceInput").fill("18.4");
-  await page.locator("#tripDurationInput").fill("35");
-  await page.locator("#tripFareInput").fill("450");
-  await page.locator("#tripTipsInput").fill("25");
-  await page.locator("#tripNotesInput").fill("Morning airport transfer");
-  await page.getByRole("button", { name: "Save trip" }).click();
-  await expect(page.getByText("Trip saved.")).toBeVisible();
+  await createTrip(page, {
+    customerLabel: "Acme Shuttle (Monthly customer)",
+  });
   await expect(page.getByRole("heading", { name: "Rosebank to Sandton" })).toBeVisible();
 
   await page.getByRole("button", { name: "Invoices" }).click();
   await page.locator("#invoiceCustomerSelect").selectOption({ label: "Acme Shuttle (Monthly customer)" });
   await expect(page.locator("#saveInvoiceBtn")).toBeEnabled();
   await expect(page.locator("#downloadInvoiceBtn")).toBeEnabled();
+  await expect(page.locator("#shareInvoiceBtn")).toBeEnabled();
   await expect(page.locator("#invoicePreview")).toContainText("Acme Shuttle");
-  await expect(page.locator("#invoicePreview .invoice-total")).toContainText("475");
+  await expect(page.locator("#invoicePreview .invoice-total")).toContainText("450");
 
   await page.locator("#saveInvoiceBtn").click();
   await expect(page.getByText("Invoice saved.")).toBeVisible();
@@ -170,13 +215,154 @@ test("expense actions and report export work after data entry", async ({ page })
   await page.getByRole("button", { name: "Reports" }).click();
   await page.locator("#exportWorkbookBtn").click();
   const workbook = await workbookDownload;
-  expect(workbook.suggestedFilename()).toMatch(/taxi-fare-report-.*\.xlsx/);
+  expect(workbook.suggestedFilename()).toMatch(/insight-ride-report-.*\.xlsx/);
 
   await page.getByRole("button", { name: "Expenses" }).click();
   await page.getByRole("button", { name: "Delete" }).click();
   await expect(page.locator("#confirmModal")).toBeVisible();
   await page.locator("#confirmAcceptBtn").click();
   await expect(page.getByText("Expense deleted.")).toBeVisible();
+
+  await expectNoClientErrors(errors);
+});
+
+test("backup restore imports valid data and refreshes the app", async ({ page }) => {
+  const errors = trackClientErrors(page);
+
+  const backupPayload = {
+    meta: {
+      app: "InsightRide",
+      format: "backup-v2",
+      exportedAt: "2026-03-23T10:00:00.000Z",
+      schemaVersion: 2,
+    },
+    data: {
+      meta: {
+        schemaVersion: 2,
+        createdAt: "2026-03-23T10:00:00.000Z",
+        updatedAt: "2026-03-23T10:00:00.000Z",
+        migratedFrom: null,
+      },
+      settings: {
+        driverName: "Ray Mhlongo",
+        businessName: "Data Insights by Ray",
+        driverPhone: "+27 72 000 0000",
+        driverEmail: "ray@example.com",
+        vehiclePlate: "RAY 123 GP",
+        businessAddress: "Johannesburg",
+        vatNumber: "",
+        currency: "ZAR",
+        theme: "dark",
+        role: "owner",
+        invoiceTheme: "modern",
+        invoicePrefix: "IR",
+        paymentTerms: "Payment due within 7 days.",
+        invoiceNotes: "",
+      },
+      trips: [{
+        id: "trip_restore_1",
+        createdAt: "2026-03-22T08:00:00.000Z",
+        updatedAt: "2026-03-22T08:00:00.000Z",
+        dateTime: "2026-03-22T08:00:00.000Z",
+        pickup: "Midrand",
+        dropoff: "Centurion",
+        passengerName: "Monthly Client",
+        paymentMethod: "card",
+        distanceKm: 0,
+        durationMin: 0,
+        fare: 180,
+        tips: 0,
+        customerId: "customer_restore_1",
+        notes: "",
+        cashCollected: 0,
+        digitalCollected: 180,
+      }],
+      expenses: [],
+      customers: [{
+        id: "customer_restore_1",
+        createdAt: "2026-03-22T08:00:00.000Z",
+        updatedAt: "2026-03-22T08:00:00.000Z",
+        name: "Restore Client",
+        phone: "+27 82 000 0000",
+        email: "restore@example.com",
+        routeNotes: "Midrand to Centurion",
+        billingType: "monthly",
+        companyDetails: "Restore Co",
+        taxNumber: "",
+        invoiceNotes: "",
+        status: "active",
+      }],
+      invoices: [],
+    },
+    receipts: [],
+  };
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.locator("#safetyBackupToggle").uncheck();
+  await page.locator("#restoreBackupInput").setInputFiles({
+    name: "backup.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(backupPayload)),
+  });
+
+  await expect(page.locator("#confirmModal")).toBeVisible();
+  await page.locator("#confirmAcceptBtn").click();
+  await expect(page.getByText("Backup restored successfully.")).toBeVisible();
+
+  await page.getByRole("button", { name: "Customers" }).click();
+  await expect(page.getByRole("heading", { name: "Restore Client" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Trips" }).click();
+  await expect(page.getByRole("heading", { name: "Midrand to Centurion" })).toBeVisible();
+
+  await expectNoClientErrors(errors);
+});
+
+test("native export actions use Capacitor save and share flows", async ({ page }) => {
+  const errors = trackClientErrors(page);
+
+  await page.goto("/");
+  await setupNativeExportMock(page);
+
+  await createCustomer(page, {
+    name: "Native Exports Co",
+    email: "native@example.com",
+    company: "Native Exports Co",
+  });
+  await createTrip(page, {
+    pickup: "Fourways",
+    dropoff: "Bryanston",
+    passenger: "Billing Client",
+    fare: "240",
+    customerLabel: "Native Exports Co (Monthly customer)",
+  });
+
+  await page.getByRole("button", { name: "Settings" }).click();
+  await page.locator("#exportBackupBtn").click();
+  await expect(page.getByText(/Backup .*device|Backup .*share sheet|Backup .*downloaded|Backup exported\./)).toBeVisible();
+
+  await page.getByRole("button", { name: "Reports" }).click();
+  await page.locator("#exportWorkbookBtn").click();
+  await expect(page.getByText(/Workbook .*device|Workbook .*share sheet|Workbook downloaded\.|Workbook exported\./)).toBeVisible();
+
+  await page.getByRole("button", { name: "Invoices" }).click();
+  await page.locator("#invoiceCustomerSelect").selectOption({ label: "Native Exports Co (Monthly customer)" });
+  await page.locator("#downloadInvoiceBtn").click();
+  await expect(page.getByText(/Invoice PDF .*device|Invoice PDF exported\./)).toBeVisible();
+  await page.locator("#shareInvoiceBtn").click();
+  await expect(page.getByText(/Invoice PDF opened in the share sheet\./)).toBeVisible();
+
+  const nativeCalls = await page.evaluate(() => window.__nativeExportCalls);
+  const writeCalls = nativeCalls.filter((call) => call.type === "writeFile");
+  const shareCalls = nativeCalls.filter((call) => call.type === "share");
+  const writtenPaths = writeCalls.map((call) => call.options.path);
+
+  expect(writtenPaths.some((path) => path.endsWith(".json"))).toBeTruthy();
+  expect(writtenPaths.some((path) => path.endsWith(".xlsx"))).toBeTruthy();
+  expect(writtenPaths.some((path) => path.endsWith(".pdf"))).toBeTruthy();
+  expect(shareCalls).toHaveLength(1);
+  expect(shareCalls[0].options.files[0]).toContain(".pdf");
 
   await expectNoClientErrors(errors);
 });

@@ -56,7 +56,9 @@ window.TaxiFareApp.createReportsModule = (app) => {
     const to = refs.to.value;
     const customerId = refs.customer.value || "all";
     const state = app.store.peek();
-    if (from && to && from > to) {
+    const fromDate = utils.toDate(from);
+    const toDate = utils.toDate(to);
+    if ((from && !fromDate) || (to && !toDate) || (fromDate && toDate && fromDate.getTime() > toDate.getTime())) {
       return {
         customerId,
         expenses: [],
@@ -273,12 +275,19 @@ window.TaxiFareApp.createReportsModule = (app) => {
     };
   }
 
-  function exportWorkbook() {
+  async function exportWorkbook() {
+    refs.exportButton.disabled = true;
+
     try {
       const reportState = getReportState();
       if (reportState.invalidRange) {
         throw new Error("Choose a valid report date range before exporting.");
       }
+
+      if (!window.XLSX?.utils?.book_new || !window.XLSX?.write) {
+        throw new Error("Workbook export is not available right now.");
+      }
+
       const workbookRows = buildWorkbookRows(reportState);
       const workbook = window.XLSX.utils.book_new();
 
@@ -292,11 +301,39 @@ window.TaxiFareApp.createReportsModule = (app) => {
       const customerLabel = reportState.customerId === "all"
         ? "all-customers"
         : utils.slugify(app.store.peek().customers.find((customer) => customer.id === reportState.customerId)?.name || "customer");
-      const fileName = `taxi-fare-report-${customerLabel}-${reportState.from}-to-${reportState.to}.xlsx`;
-      window.XLSX.writeFile(workbook, fileName);
-      app.ui.toast("Workbook exported.", "success");
+      const fileName = `${utils.APP_SLUG}-report-${customerLabel}-${reportState.from}-to-${reportState.to}.xlsx`;
+      const workbookBytes = window.XLSX.write(workbook, {
+        bookType: "xlsx",
+        type: "array",
+      });
+
+      const result = await utils.exportFile({
+        blob: new Blob([workbookBytes], {
+          type: utils.mimeTypeFromFileName(fileName),
+        }),
+        fileName,
+        mode: "download",
+        title: `${utils.APP_NAME} workbook`,
+        text: `${utils.APP_NAME} report export`,
+      });
+
+      if (result.method === "cancelled") {
+        app.ui.toast("Workbook export cancelled.", "warning");
+        return;
+      }
+
+      const copy = result.method === "native-save"
+        ? "Workbook saved to your device."
+        : result.method === "native-share-fallback"
+          ? "Workbook opened in the share sheet so you can save it."
+          : result.method === "download"
+            ? "Workbook downloaded."
+            : "Workbook exported.";
+      app.ui.toast(copy, "success");
     } catch (error) {
       app.ui.toast(error.message || "Workbook export failed.", "warning");
+    } finally {
+      refs.exportButton.disabled = false;
     }
   }
 

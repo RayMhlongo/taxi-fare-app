@@ -86,7 +86,7 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: taxi-fare-debug-apk
+          name: insightride-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
 
@@ -95,9 +95,9 @@ jobs:
         with:
           files: android/app/build/outputs/apk/debug/app-debug.apk
           tag_name: apk-build-${{ github.run_number }}
-          release_name: Taxi Fare APK Build ${{ github.run_number }}
+          release_name: InsightRide APK Build ${{ github.run_number }}
           body: |
-            # Taxi Fare - Android APK
+            # InsightRide - Android APK
 
             Build date: ${{ github.event.head_commit.timestamp }}
 
@@ -109,12 +109,13 @@ jobs:
             - Receipt image handling
             - Premium monthly invoice PDF generation
             - Improved dashboard insights and reports
+            - Native save/share export flows for backups, workbooks, and invoices
 
             Install steps:
             1. Download the APK file below.
             2. Transfer it to your Android phone.
             3. Open the file and allow app installs if prompted.
-            4. Launch Taxi Fare and start logging trips offline.
+            4. Launch InsightRide and start logging trips offline.
           draft: false
           prerelease: false
         env:

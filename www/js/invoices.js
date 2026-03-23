@@ -66,7 +66,7 @@ window.TaxiFareApp.createInvoicesModule = (app) => {
 
   function buildInvoiceNumber() {
     const settings = app.store.peek().settings;
-    const prefix = settings.invoicePrefix || "TF";
+    const prefix = settings.invoicePrefix || "IR";
     const period = (refs.issueDate.value || utils.toLocalDateInputValue(new Date())).replaceAll("-", "").slice(0, 6);
     const samePeriodCount = app.store.peek().invoices.filter((invoice) => invoice.invoiceNumber.startsWith(`${prefix}-${period}`)).length + 1;
     return `${prefix}-${period}-${String(samePeriodCount).padStart(3, "0")}`;
@@ -88,7 +88,9 @@ window.TaxiFareApp.createInvoicesModule = (app) => {
       throw new Error("Select a customer before generating an invoice.");
     }
 
-    if (!refs.fromDate.value || !refs.toDate.value || refs.fromDate.value > refs.toDate.value) {
+    const fromDate = utils.toDate(refs.fromDate.value);
+    const toDate = utils.toDate(refs.toDate.value);
+    if (!fromDate || !toDate || fromDate.getTime() > toDate.getTime()) {
       throw new Error("Choose a valid invoice date range.");
     }
 
@@ -207,14 +209,14 @@ window.TaxiFareApp.createInvoicesModule = (app) => {
         <div class="badge-row">
           <span class="badge">${utils.escapeHtml(draft.template === "modern" ? "Modern Professional" : "Clean Minimal")}</span>
           <span class="badge badge-neutral">${utils.escapeHtml(`${draft.totals.tripCount} line items`)}</span>
-          <span class="badge badge-neutral">${utils.escapeHtml(`${draft.totals.distanceKm.toFixed(1)} km`)}</span>
+          <span class="badge badge-neutral">${utils.escapeHtml(`Due ${utils.formatDate(draft.dueDate)}`)}</span>
         </div>
         <div class="invoice-line-list">
           ${draft.lineItems.slice(0, 6).map((item) => `
             <div class="invoice-line-item">
               <div>
                 <strong>${utils.escapeHtml(utils.formatDate(item.dateTime))}</strong>
-                <p class="invoice-line-copy">${utils.escapeHtml(item.route)} | ${utils.escapeHtml(item.description)}</p>
+                <p class="invoice-line-copy">${utils.escapeHtml(item.route)} • ${utils.escapeHtml(item.description)}</p>
               </div>
               <strong>${utils.escapeHtml(utils.formatCurrency(item.total, currency))}</strong>
             </div>
@@ -251,21 +253,83 @@ window.TaxiFareApp.createInvoicesModule = (app) => {
     });
   }
 
-  async function persistInvoice(mode) {
-    try {
-      const invoice = buildInvoiceDraft();
-      persistRecord(invoice);
-
-      if (mode === "save") {
-        app.ui.toast("Invoice saved.", "success");
-        return;
-      }
-
-      await exportInvoicePdf(invoice, mode === "share");
-      app.ui.toast(mode === "share" ? "Invoice ready to share." : "Invoice PDF downloaded.", "success");
-    } catch (error) {
-      app.ui.toast(error.message || "Invoice could not be generated.", "warning");
+  function describeInvoiceExport(result, mode) {
+    if (result?.method === "cancelled") {
+      return mode === "share" ? "Invoice sharing cancelled." : "Invoice export cancelled.";
     }
+
+    if (result?.method === "native-save") {
+      return "Invoice PDF saved to your device.";
+    }
+
+    if (result?.method === "native-share" || result?.method === "web-share") {
+      return "Invoice PDF opened in the share sheet.";
+    }
+
+    if (result?.method === "native-share-fallback") {
+      return "Invoice PDF opened in the share sheet so you can save it.";
+    }
+
+    return "Invoice PDF exported.";
+  }
+
+  function getBusyCopy(mode) {
+    if (mode === "save") {
+      return "Saving...";
+    }
+
+    if (mode === "share") {
+      return "Sharing...";
+    }
+
+    return "Preparing...";
+  }
+
+  async function withBusyButton(button, mode, task) {
+    if (!button) {
+      return task();
+    }
+
+    const originalLabel = button.textContent;
+    button.disabled = true;
+    button.textContent = getBusyCopy(mode);
+
+    try {
+      return await task();
+    } finally {
+      button.textContent = originalLabel;
+      renderPreview();
+    }
+  }
+
+  async function persistInvoice(mode) {
+    const button = mode === "save"
+      ? refs.saveButton
+      : mode === "share"
+        ? refs.shareButton
+        : refs.downloadButton;
+
+    await withBusyButton(button, mode, async () => {
+      try {
+        const invoice = buildInvoiceDraft();
+        persistRecord(invoice);
+
+        if (mode === "save") {
+          app.ui.toast("Invoice saved.", "success");
+          return;
+        }
+
+        const result = await exportInvoicePdf(invoice, mode);
+        if (result?.method === "cancelled") {
+          app.ui.toast(describeInvoiceExport(result, mode), "warning");
+          return;
+        }
+
+        app.ui.toast(describeInvoiceExport(result, mode), "success");
+      } catch (error) {
+        app.ui.toast(error.message || "Invoice could not be generated.", "warning");
+      }
+    });
   }
 
   async function onArchiveClick(event) {
@@ -285,16 +349,21 @@ window.TaxiFareApp.createInvoicesModule = (app) => {
       return;
     }
 
-    if (actionButton.dataset.invoiceAction === "download") {
-      await exportInvoicePdf(invoice, false);
-      app.ui.toast("Invoice PDF downloaded.", "success");
-      return;
-    }
+    const mode = actionButton.dataset.invoiceAction === "share" ? "share" : "download";
 
-    if (actionButton.dataset.invoiceAction === "share") {
-      await exportInvoicePdf(invoice, true);
-      app.ui.toast("Invoice ready to share.", "success");
-    }
+    await withBusyButton(actionButton, mode, async () => {
+      try {
+        const result = await exportInvoicePdf(invoice, mode);
+        if (result?.method === "cancelled") {
+          app.ui.toast(describeInvoiceExport(result, mode), "warning");
+          return;
+        }
+
+        app.ui.toast(describeInvoiceExport(result, mode), "success");
+      } catch (error) {
+        app.ui.toast(error.message || "Invoice export failed.", "warning");
+      }
+    });
   }
 
   function loadArchivedInvoice(invoice) {
@@ -335,7 +404,7 @@ window.TaxiFareApp.createInvoicesModule = (app) => {
         </div>
         <div class="entry-actions">
           <button class="action-link" type="button" data-invoice-action="load" data-invoice-id="${utils.escapeHtml(invoice.id)}">Load</button>
-          <button class="action-link" type="button" data-invoice-action="download" data-invoice-id="${utils.escapeHtml(invoice.id)}">Download PDF</button>
+          <button class="action-link" type="button" data-invoice-action="download" data-invoice-id="${utils.escapeHtml(invoice.id)}">Save PDF</button>
           <button class="action-link" type="button" data-invoice-action="share" data-invoice-id="${utils.escapeHtml(invoice.id)}">Share PDF</button>
         </div>
       </article>
@@ -381,6 +450,38 @@ window.TaxiFareApp.createInvoicesModule = (app) => {
     doc.text(text || "-", x + 14, y + 38, { maxWidth: width - 28, lineHeightFactor: 1.35 });
   }
 
+  function drawBrandMark(doc, x, y, size) {
+    const accent = [0, 212, 255];
+    const teal = [0, 255, 204];
+    const deep = [5, 14, 29];
+    const barWidth = size * 0.18;
+    const gap = size * 0.08;
+    const baseY = y + size * 0.82;
+    const heights = [size * 0.28, size * 0.52, size * 0.76];
+
+    doc.setDrawColor(...accent);
+    doc.setLineWidth(3);
+    doc.line(x, baseY, x + size * 0.74, baseY);
+
+    [accent, [68, 220, 255], teal].forEach((fill, index) => {
+      const left = x + index * (barWidth + gap);
+      const top = baseY - heights[index];
+      doc.setFillColor(...fill);
+      doc.roundedRect(left, top, barWidth, heights[index], 5, 5, "F");
+    });
+
+    const carX = x + size * 0.6;
+    const carY = baseY - size * 0.1;
+    doc.setDrawColor(...deep);
+    doc.setLineWidth(2);
+    doc.line(carX, carY, carX + size * 0.11, carY - size * 0.06);
+    doc.line(carX + size * 0.11, carY - size * 0.06, carX + size * 0.22, carY);
+    doc.line(carX + size * 0.22, carY, carX + size * 0.22, carY + size * 0.04);
+    doc.line(carX, carY, carX, carY + size * 0.04);
+    doc.circle(carX + size * 0.04, carY + size * 0.04, size * 0.018, "F");
+    doc.circle(carX + size * 0.18, carY + size * 0.04, size * 0.018, "F");
+  }
+
   function drawInvoiceFooter(doc, accentColor) {
     const pageCount = doc.internal.getNumberOfPages();
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -394,26 +495,24 @@ window.TaxiFareApp.createInvoicesModule = (app) => {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
       doc.setTextColor(110, 121, 137);
-      doc.text(`Taxi Fare invoice | Page ${index} of ${pageCount}`, 40, pageHeight - 24);
-      doc.text("Generated offline from Taxi Fare", pageWidth - 40, pageHeight - 24, { align: "right" });
+      doc.text(`${utils.APP_NAME} invoice | Page ${index} of ${pageCount}`, 40, pageHeight - 24);
+      doc.text(`Generated offline by ${utils.BRAND_NAME}`, pageWidth - 40, pageHeight - 24, { align: "right" });
     }
   }
 
   function renderModernPdf(doc, invoice) {
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
-    const accent = [11, 143, 129];
-    const accentDark = [8, 104, 94];
-    const driverName = invoice.driverSnapshot.businessName || invoice.driverSnapshot.driverName || "Taxi Fare Driver";
+    const accent = [0, 212, 255];
+    const accentDark = [5, 14, 29];
+    const teal = [0, 255, 204];
+    const driverName = invoice.driverSnapshot.businessName || invoice.driverSnapshot.driverName || utils.APP_NAME;
 
     doc.setFillColor(...accentDark);
     doc.rect(0, 0, pageWidth, 118, "F");
     doc.setFillColor(255, 255, 255);
     doc.roundedRect(40, 28, 58, 58, 16, 16, "F");
-    doc.setTextColor(...accentDark);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(22);
-    doc.text("TF", 69, 64, { align: "center" });
+    drawBrandMark(doc, 52, 38, 34);
 
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(15);
@@ -421,6 +520,7 @@ window.TaxiFareApp.createInvoicesModule = (app) => {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
     doc.text([
+      utils.BRAND_NAME,
       invoice.driverSnapshot.driverPhone || "",
       invoice.driverSnapshot.driverEmail || "",
       invoice.driverSnapshot.vehiclePlate ? `Plate: ${invoice.driverSnapshot.vehiclePlate}` : "",
@@ -469,7 +569,7 @@ window.TaxiFareApp.createInvoicesModule = (app) => {
       ]),
       theme: "grid",
       headStyles: {
-        fillColor: accent,
+        fillColor: teal,
         textColor: 255,
         fontStyle: "bold",
       },
@@ -528,8 +628,8 @@ window.TaxiFareApp.createInvoicesModule = (app) => {
   function renderMinimalPdf(doc, invoice) {
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
-    const accent = [31, 75, 153];
-    const driverName = invoice.driverSnapshot.businessName || invoice.driverSnapshot.driverName || "Taxi Fare Driver";
+    const accent = [0, 212, 255];
+    const driverName = invoice.driverSnapshot.businessName || invoice.driverSnapshot.driverName || utils.APP_NAME;
 
     doc.setDrawColor(...accent);
     doc.setLineWidth(5);
@@ -537,7 +637,7 @@ window.TaxiFareApp.createInvoicesModule = (app) => {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(24);
     doc.setTextColor(24, 33, 47);
-    doc.text("Invoice", 40, 76);
+    doc.text(utils.APP_NAME, 40, 76);
     doc.setFontSize(11);
     doc.text(invoice.invoiceNumber, 40, 94);
 
@@ -632,20 +732,14 @@ window.TaxiFareApp.createInvoicesModule = (app) => {
 
     const blob = doc.output("blob");
     const fileName = `${utils.slugify(invoice.invoiceNumber, "invoice")}.pdf`;
-
-    if (shareInsteadOfDownload) {
-      const file = new File([blob], fileName, { type: "application/pdf" });
-      const shared = await utils.shareFile(file, {
-        title: invoice.invoiceNumber,
-        text: `Invoice ${invoice.invoiceNumber}`,
-      });
-
-      if (shared) {
-        return;
-      }
-    }
-
-    utils.downloadBlob(blob, fileName);
+    return utils.exportFile({
+      blob,
+      fileName,
+      mode: shareInsteadOfDownload,
+      title: invoice.invoiceNumber,
+      text: `Invoice ${invoice.invoiceNumber}`,
+      mimeType: "application/pdf",
+    });
   }
 
   return {

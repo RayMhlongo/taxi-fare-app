@@ -1,6 +1,6 @@
-# Taxi Fare
+# InsightRide
 
-Taxi Fare is an offline-first driver operations app for South African taxi drivers.
+InsightRide is an offline-first driver operations app for South African taxi drivers, powered by Data Insights by Ray.
 
 It helps drivers and small operators:
 
@@ -51,9 +51,9 @@ This repo has been upgraded from a single-file MVP into a modular app with:
 
 - Create, edit, and delete trips
 - Assign trips to customers
-- Track pickup, dropoff, passenger, fare, tips, distance, and duration
-- Track cash, card, mobile, and mixed payments
+- Track pickup, dropoff, passenger, fare, and payment method
 - Capture mixed-payment cash portion for better cash-up accuracy
+- Preserve legacy imported distance, duration, tips, and notes data where it already exists
 
 ### Expenses
 
@@ -222,6 +222,7 @@ The app automatically migrates older data when possible.
 
 - Exports JSON
 - Includes trips, expenses, customers, invoices, settings, and stored receipts
+- Uses native save or share flows inside the Android APK when available
 
 ### Restore import
 
@@ -229,6 +230,7 @@ The app automatically migrates older data when possible.
 - Prevents invalid imports from crashing the app
 - Can create a safety backup before overwrite
 - Rebuilds receipt storage from the imported backup
+- Uses a hidden file picker flow that works in browser and Capacitor packaging
 
 ## Invoice PDF Generation
 
@@ -256,6 +258,11 @@ PDF invoices are generated fully in-browser and work offline after the app shell
 - `jspdf-autotable`
 
 These were chosen because they are stable, browser-friendly, and practical for lightweight offline PDF generation.
+
+### Native export behavior
+
+- In the web browser, invoice PDFs, workbooks, and backups download normally.
+- In the Android APK, the app uses Capacitor file saving and share-sheet flows so export buttons still work inside a WebView.
 
 ## External Libraries
 
@@ -290,7 +297,7 @@ All runtime libraries used by the app are copied into local `vendor/` assets dur
 - Added trip and expense editing plus safer deletes
 - Added backup restore and reliable receipt handling
 - Fixed settings behavior, currency formatting, and report date filtering
-- Improved offline packaging and Capacitor sync behavior
+- Improved offline packaging, native export handling, and Capacitor sync behavior
 
 ## License
 

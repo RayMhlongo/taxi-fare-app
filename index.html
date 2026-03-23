@@ -3,24 +3,42 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <title>Taxi Fare | Driver Operations</title>
-  <meta name="description" content="Taxi Fare is an offline-first driver operations app for South African taxi drivers.">
-  <meta name="theme-color" content="#0b8f81">
+  <title>InsightRide | Driver Operations</title>
+  <meta name="description" content="InsightRide is an offline-first driver operations app powered by Data Insights by Ray for South African taxi drivers.">
+  <meta name="theme-color" content="#0a1628">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Taxi Fare">
+  <meta name="apple-mobile-web-app-title" content="InsightRide">
   <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192x192.png">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="app-shell">
     <header class="app-header">
       <div class="brand">
-        <div class="brand-mark">TF</div>
+        <div class="brand-mark" aria-hidden="true">
+          <svg class="brand-mark-svg" viewBox="0 0 72 72" fill="none">
+            <defs>
+              <linearGradient id="brandGradientBars" x1="12" y1="16" x2="52" y2="56" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#00d4ff"></stop>
+                <stop offset="100%" stop-color="#00ffcc"></stop>
+              </linearGradient>
+            </defs>
+            <rect x="12" y="38" width="10" height="18" rx="2.5" fill="url(#brandGradientBars)" fill-opacity="0.85"></rect>
+            <rect x="26" y="26" width="10" height="30" rx="2.5" fill="url(#brandGradientBars)" fill-opacity="0.92"></rect>
+            <rect x="40" y="14" width="10" height="42" rx="2.5" fill="url(#brandGradientBars)"></rect>
+            <path d="M10 56H54" stroke="#00d4ff" stroke-width="3.2" stroke-linecap="round"></path>
+            <path d="M52 47.5L57 44.5L63 47.5V51H52V47.5Z" stroke="#051121" stroke-width="2.4" stroke-linejoin="round"></path>
+            <circle cx="55.3" cy="51" r="2.1" fill="#051121"></circle>
+            <circle cx="60.8" cy="51" r="2.1" fill="#051121"></circle>
+          </svg>
+        </div>
         <div>
-          <h1 class="brand-title">Taxi Fare</h1>
-          <p class="brand-subtitle">Driver operations, reports, and monthly invoices.</p>
+          <p class="brand-kicker">Data Insights by Ray</p>
+          <h1 class="brand-title">InsightRide</h1>
+          <p class="brand-subtitle">Smart fares. Smarter rides.</p>
         </div>
       </div>
       <div class="header-meta">
@@ -154,7 +172,7 @@
               <button class="btn btn-primary" type="button" id="dashboardAddTripBtn">Log trip</button>
               <button class="btn btn-secondary" type="button" id="dashboardAddExpenseBtn">Add expense</button>
               <button class="btn btn-secondary" type="button" id="dashboardAddCustomerBtn">New customer</button>
-              <button class="btn btn-secondary" type="button" id="dashboardOpenInvoicesBtn">Build invoice</button>
+              <button class="btn btn-secondary" type="button" id="dashboardOpenInvoicesBtn">Invoice customer</button>
             </div>
           </div>
         </div>
@@ -179,7 +197,7 @@
               </label>
               <label class="field">
                 <span>Search</span>
-                <input id="tripSearchInput" type="search" placeholder="Route, passenger, or note">
+                <input id="tripSearchInput" type="search" placeholder="Route, customer, or passenger">
               </label>
             </div>
             <div class="summary-strip" id="tripSummaryStrip"></div>
@@ -284,7 +302,7 @@
               <label class="field">
                 <span>Invoice number</span>
                 <div class="input-with-action">
-                  <input id="invoiceNumberInput" type="text" placeholder="TF-202603-001">
+                  <input id="invoiceNumberInput" type="text" placeholder="IR-202603-001">
                   <button class="btn btn-secondary btn-inline-small" type="button" id="generateInvoiceNumberBtn">Generate</button>
                 </div>
               </label>
@@ -330,7 +348,7 @@
 
             <div class="action-row">
               <button class="btn btn-secondary" type="button" id="saveInvoiceBtn">Save invoice</button>
-              <button class="btn btn-primary" type="button" id="downloadInvoiceBtn">Download PDF</button>
+              <button class="btn btn-primary" type="button" id="downloadInvoiceBtn">Save PDF</button>
               <button class="btn btn-secondary" type="button" id="shareInvoiceBtn">Share PDF</button>
             </div>
           </div>
@@ -359,7 +377,7 @@
               <h2 class="section-title">Reports</h2>
               <p class="section-copy">Use reliable date filtering, customer filters, and deeper analytics to understand your business properly.</p>
             </div>
-            <button class="btn btn-primary btn-inline" type="button" id="exportWorkbookBtn">Export workbook</button>
+            <button class="btn btn-primary btn-inline" type="button" id="exportWorkbookBtn">Save workbook</button>
           </div>
 
           <div class="toolbar toolbar-stack">
@@ -493,7 +511,7 @@
               </label>
               <label class="field">
                 <span>Invoice prefix</span>
-                <input id="settingsInvoicePrefix" type="text" maxlength="10" placeholder="TF">
+                <input id="settingsInvoicePrefix" type="text" maxlength="10" placeholder="IR">
               </label>
               <label class="field">
                 <span>Default payment terms</span>
@@ -514,8 +532,8 @@
               </div>
             </div>
             <div class="action-grid action-grid-wide">
-              <button class="btn btn-secondary" type="button" id="exportBackupBtn">Export JSON backup</button>
-              <button class="btn btn-secondary" type="button" id="restoreBackupBtn">Restore from backup</button>
+              <button class="btn btn-secondary" type="button" id="exportBackupBtn">Save JSON backup</button>
+              <button class="btn btn-secondary" type="button" id="restoreBackupBtn">Import backup</button>
               <button class="btn btn-danger" type="button" id="clearDataBtn">Clear all local data</button>
             </div>
             <label class="toggle-row" for="safetyBackupToggle">
@@ -580,29 +598,13 @@
             </select>
           </label>
           <label class="field">
-            <span>Distance km</span>
-            <input id="tripDistanceInput" type="number" min="0" step="0.1" placeholder="0.0">
-          </label>
-          <label class="field">
-            <span>Duration minutes</span>
-            <input id="tripDurationInput" type="number" min="0" step="1" placeholder="0">
-          </label>
-          <label class="field">
             <span>Fare</span>
             <input id="tripFareInput" type="number" min="0" step="0.01" placeholder="0.00" required>
-          </label>
-          <label class="field">
-            <span>Tips</span>
-            <input id="tripTipsInput" type="number" min="0" step="0.01" placeholder="0.00">
           </label>
           <label class="field field-full hidden" id="tripCashPortionField">
             <span>Cash portion for mixed payment</span>
             <input id="tripCashPortionInput" type="number" min="0" step="0.01" placeholder="0.00">
             <small class="helper-text">The remaining amount is counted as card or mobile.</small>
-          </label>
-          <label class="field field-full">
-            <span>Notes</span>
-            <textarea id="tripNotesInput" rows="3" placeholder="Shift notes, route notes, or customer detail"></textarea>
           </label>
         </div>
         <div class="action-row">
@@ -754,8 +756,9 @@
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <input id="restoreBackupInput" type="file" accept="application/json,.json" hidden>
+  <input id="restoreBackupInput" class="file-picker-proxy" type="file" accept="application/json,.json">
 
+  <script src="vendor/capacitor.js" defer></script>
   <script src="vendor/chart.umd.min.js" defer></script>
   <script src="vendor/xlsx.full.min.js" defer></script>
   <script src="vendor/jspdf.umd.min.js" defer></script>

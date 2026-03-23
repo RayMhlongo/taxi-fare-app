@@ -1,10 +1,11 @@
-const CACHE_NAME = "taxi-fare-v2.0.0";
+const CACHE_NAME = "insight-ride-v2.3.0";
 const OFFLINE_URL = "./index.html";
 const PRECACHE_URLS = [
   "./",
   "./index.html",
   "./styles.css",
   "./manifest.json",
+  "./vendor/capacitor.js",
   "./vendor/chart.umd.min.js",
   "./vendor/xlsx.full.min.js",
   "./vendor/jspdf.umd.min.js",
@@ -22,6 +23,7 @@ const PRECACHE_URLS = [
   "./icons/icon-96x96.png",
   "./icons/icon-128x128.png",
   "./icons/icon-144x144.png",
+  "./icons/icon-152x152.png",
   "./icons/icon-192x192.png",
   "./icons/icon-384x384.png",
   "./icons/icon-512x512.png",

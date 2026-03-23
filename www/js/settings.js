@@ -35,7 +35,7 @@ window.TaxiFareApp.createSettingsModule = (app) => {
   function init() {
     refs.form.addEventListener("submit", onSubmit);
     refs.exportBackup.addEventListener("click", exportBackup);
-    refs.restoreBackup.addEventListener("click", () => refs.restoreInput.click());
+    refs.restoreBackup.addEventListener("click", openRestorePicker);
     refs.restoreInput.addEventListener("change", onRestoreSelected);
     refs.clearData.addEventListener("click", onClearData);
     refs.themeToggle.addEventListener("click", toggleThemeQuick);
@@ -69,7 +69,7 @@ window.TaxiFareApp.createSettingsModule = (app) => {
     document.documentElement.setAttribute("data-theme", nextTheme);
     const themeMeta = document.querySelector('meta[name="theme-color"]');
     if (themeMeta) {
-      themeMeta.setAttribute("content", nextTheme === "dark" ? "#101723" : "#0b8f81");
+      themeMeta.setAttribute("content", nextTheme === "dark" ? "#050e1d" : "#0a1628");
     }
     refs.themeToggle.textContent = nextTheme === "dark" ? "Light" : "Dark";
   }
@@ -89,6 +89,38 @@ window.TaxiFareApp.createSettingsModule = (app) => {
 
   function renderConnectionBadge() {
     refs.connectionBadge.textContent = navigator.onLine ? "Online" : "Offline ready";
+  }
+
+  function openRestorePicker() {
+    try {
+      utils.openFilePicker(refs.restoreInput);
+    } catch (error) {
+      app.ui.toast("Backup import could not be opened on this device.", "warning");
+    }
+  }
+
+  function describeExportResult(result, fallbackCopy) {
+    if (result?.method === "native-save") {
+      return "saved to your device";
+    }
+
+    if (result?.method === "native-share" || result?.method === "web-share") {
+      return "opened in the share sheet";
+    }
+
+    if (result?.method === "native-share-fallback") {
+      return fallbackCopy || "opened in the share sheet";
+    }
+
+    if (result?.method === "download") {
+      return "downloaded";
+    }
+
+    if (result?.method === "cancelled") {
+      return "cancelled";
+    }
+
+    return "exported";
   }
 
   function renderStorageSummary() {
@@ -129,7 +161,7 @@ window.TaxiFareApp.createSettingsModule = (app) => {
     refs.currency.value = settings.currency || "ZAR";
     refs.role.value = settings.role || "owner";
     refs.invoiceTheme.value = settings.invoiceTheme || "modern";
-    refs.invoicePrefix.value = settings.invoicePrefix || "TF";
+    refs.invoicePrefix.value = settings.invoicePrefix || "IR";
     refs.paymentTerms.value = settings.paymentTerms || "";
     refs.invoiceNotes.value = settings.invoiceNotes || "";
 
@@ -161,7 +193,7 @@ window.TaxiFareApp.createSettingsModule = (app) => {
           currency: refs.currency.value,
           role: refs.role.value,
           invoiceTheme: refs.invoiceTheme.value,
-          invoicePrefix: utils.stringFrom(refs.invoicePrefix.value, "TF").slice(0, 10) || "TF",
+          invoicePrefix: utils.stringFrom(refs.invoicePrefix.value, "IR").slice(0, 10) || "IR",
           paymentTerms: utils.stringFrom(refs.paymentTerms.value),
           invoiceNotes: utils.stringFrom(refs.invoiceNotes.value),
         };
@@ -175,13 +207,29 @@ window.TaxiFareApp.createSettingsModule = (app) => {
   }
 
   async function exportBackup() {
+    refs.exportBackup.disabled = true;
+
     try {
       const payload = await app.store.exportBackup();
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-      utils.downloadBlob(blob, `taxi-fare-backup-${utils.toLocalDateInputValue(new Date())}.json`);
-      app.ui.toast("Backup exported.", "success");
+      const result = await utils.exportFile({
+        blob,
+        fileName: `${utils.APP_SLUG}-backup-${utils.toLocalDateInputValue(new Date())}.json`,
+        mode: "download",
+        title: `${utils.APP_NAME} backup`,
+        text: `${utils.APP_NAME} backup export`,
+      });
+
+      if (result.method === "cancelled") {
+        app.ui.toast("Backup export cancelled.", "warning");
+        return;
+      }
+
+      app.ui.toast(`Backup ${describeExportResult(result, "opened in the share sheet so you can save it elsewhere")}.`, "success");
     } catch (error) {
       app.ui.toast(error.message || "Backup export failed.", "warning");
+    } finally {
+      refs.exportBackup.disabled = false;
     }
   }
 
@@ -210,12 +258,25 @@ window.TaxiFareApp.createSettingsModule = (app) => {
         createSafetyBackup: refs.safetyBackupToggle.checked,
       });
 
+      let message = "Backup restored successfully.";
       if (result.safetyBackup) {
         const blob = new Blob([JSON.stringify(result.safetyBackup, null, 2)], { type: "application/json" });
-        utils.downloadBlob(blob, `taxi-fare-safety-backup-${utils.toLocalDateInputValue(new Date())}.json`);
+        const exportResult = await utils.exportFile({
+          blob,
+          fileName: `${utils.APP_SLUG}-safety-backup-${utils.toLocalDateInputValue(new Date())}.json`,
+          mode: "download",
+          title: `${utils.APP_NAME} safety backup`,
+          text: `${utils.APP_NAME} safety backup export`,
+        });
+
+        if (exportResult.method === "cancelled") {
+          message = "Backup restored. Safety backup export was cancelled.";
+        } else {
+          message = `Backup restored. Safety backup ${describeExportResult(exportResult, "opened in the share sheet so you can store it safely")}.`;
+        }
       }
 
-      app.ui.toast("Backup restored successfully.", "success");
+      app.ui.toast(message, "success");
     } catch (error) {
       app.ui.toast(error.message || "Restore failed. Check that the JSON file is valid.", "warning");
     }

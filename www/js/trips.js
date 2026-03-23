@@ -17,13 +17,9 @@ window.TaxiFareApp.createTripsModule = (app) => {
     dropoff: document.getElementById("tripDropoffInput"),
     passenger: document.getElementById("tripPassengerInput"),
     payment: document.getElementById("tripPaymentInput"),
-    distance: document.getElementById("tripDistanceInput"),
-    duration: document.getElementById("tripDurationInput"),
     fare: document.getElementById("tripFareInput"),
-    tips: document.getElementById("tripTipsInput"),
     cashField: document.getElementById("tripCashPortionField"),
     cashPortion: document.getElementById("tripCashPortionInput"),
-    notes: document.getElementById("tripNotesInput"),
     deleteButton: document.getElementById("deleteTripBtn"),
     filterCustomer: document.getElementById("tripCustomerFilter"),
     search: document.getElementById("tripSearchInput"),
@@ -52,6 +48,10 @@ window.TaxiFareApp.createTripsModule = (app) => {
       allLabel: "All customers",
       includeInactive: true,
     });
+  }
+
+  function currentTrip() {
+    return app.store.peek().trips.find((trip) => trip.id === refs.idInput.value) || null;
   }
 
   function openCreate(options = {}) {
@@ -84,12 +84,8 @@ window.TaxiFareApp.createTripsModule = (app) => {
     refs.dropoff.value = trip.dropoff;
     refs.passenger.value = trip.passengerName || "";
     refs.payment.value = trip.paymentMethod;
-    refs.distance.value = trip.distanceKm || "";
-    refs.duration.value = trip.durationMin || "";
     refs.fare.value = trip.fare || "";
-    refs.tips.value = trip.tips || "";
     refs.cashPortion.value = trip.paymentMethod === "mixed" ? trip.cashCollected || "" : "";
-    refs.notes.value = trip.notes || "";
     refs.deleteButton.classList.remove("hidden");
     syncMixedField();
     app.ui.openModal("tripModal");
@@ -109,8 +105,9 @@ window.TaxiFareApp.createTripsModule = (app) => {
       throw new Error("Please complete the required trip fields.");
     }
 
+    const existing = currentTrip();
     const fare = utils.numberFrom(refs.fare.value);
-    const tips = utils.numberFrom(refs.tips.value);
+    const tips = utils.numberFrom(existing?.tips);
     const total = fare + tips;
     const paymentMethod = refs.payment.value;
     let cashCollected = 0;
@@ -141,12 +138,12 @@ window.TaxiFareApp.createTripsModule = (app) => {
       dropoff: utils.stringFrom(refs.dropoff.value, "Unknown dropoff"),
       passengerName: utils.stringFrom(refs.passenger.value),
       paymentMethod,
-      distanceKm: utils.numberFrom(refs.distance.value),
-      durationMin: utils.integerFrom(refs.duration.value),
+      distanceKm: utils.numberFrom(existing?.distanceKm),
+      durationMin: utils.integerFrom(existing?.durationMin),
       fare,
       tips,
       customerId: utils.stringFrom(refs.customer.value),
-      notes: utils.stringFrom(refs.notes.value),
+      notes: utils.stringFrom(existing?.notes),
       cashCollected,
       digitalCollected,
     };

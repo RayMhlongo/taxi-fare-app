@@ -6,6 +6,7 @@ const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const wwwDir = path.join(rootDir, "www");
 
 const vendorMappings = [
+  ["node_modules/@capacitor/core/dist/capacitor.js", "vendor/capacitor.js"],
   ["node_modules/chart.js/dist/chart.umd.min.js", "vendor/chart.umd.min.js"],
   ["node_modules/xlsx/dist/xlsx.full.min.js", "vendor/xlsx.full.min.js"],
   ["node_modules/jspdf/dist/jspdf.umd.min.js", "vendor/jspdf.umd.min.js"],
@@ -54,4 +55,4 @@ async function rebuildWww() {
 await copyToRootVendor();
 await rebuildWww();
 
-console.log("Taxi Fare web assets built and synced to www.");
+console.log("InsightRide web assets built and synced to www.");

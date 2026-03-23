@@ -1,10 +1,10 @@
-// Taxi Fare - Google Sheets Integration Script
+// InsightRide - Google Sheets Integration Script
 // Copy this code into Google Apps Script for Sheets integration
 
 function doGet(e) {
   return ContentService.createTextOutput(JSON.stringify({
     status: "ok",
-    message: "Taxi Fare Google Sheets API is ready"
+    message: "InsightRide Google Sheets API is ready"
   })).setMimeType(ContentService.MimeType.JSON);
 }
 

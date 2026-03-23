@@ -22,7 +22,7 @@ window.TaxiFareApp.storage = (() => {
     theme: "system",
     role: "owner",
     invoiceTheme: "modern",
-    invoicePrefix: "TF",
+    invoicePrefix: "IR",
     paymentTerms: "Payment due within 7 days.",
     invoiceNotes: "",
   };
@@ -67,7 +67,7 @@ window.TaxiFareApp.storage = (() => {
       theme,
       role: ["owner", "manager", "driver"].includes(raw.role) ? raw.role : "owner",
       invoiceTheme: ["modern", "minimal"].includes(raw.invoiceTheme) ? raw.invoiceTheme : "modern",
-      invoicePrefix: utils.stringFrom(raw.invoicePrefix, "TF").slice(0, 10) || "TF",
+      invoicePrefix: utils.stringFrom(raw.invoicePrefix, "IR").slice(0, 10) || "IR",
       paymentTerms: utils.stringFrom(raw.paymentTerms, SETTINGS_DEFAULTS.paymentTerms),
       invoiceNotes: utils.stringFrom(raw.invoiceNotes),
     };
@@ -381,7 +381,7 @@ window.TaxiFareApp.storage = (() => {
 
     return {
       meta: {
-        app: "Taxi Fare",
+        app: utils.APP_NAME,
         format: "backup-v2",
         exportedAt: utils.nowISOString(),
         schemaVersion: SCHEMA_VERSION,
@@ -406,7 +406,7 @@ window.TaxiFareApp.storage = (() => {
       };
     }
 
-    throw new Error("The selected file is not a valid Taxi Fare backup.");
+    throw new Error(`The selected file is not a valid ${utils.APP_NAME} backup.`);
   }
 
   function createStore() {

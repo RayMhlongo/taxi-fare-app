@@ -1,8 +1,8 @@
 {
-  "name": "Taxi Fare",
-  "short_name": "Taxi Fare",
-  "description": "Offline-first driver operations app for South African taxi drivers.",
-  "id": "./?app=taxi-fare",
+  "name": "InsightRide",
+  "short_name": "InsightRide",
+  "description": "Offline-first driver operations app powered by Data Insights by Ray for South African taxi drivers.",
+  "id": "./?app=insight-ride",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -10,8 +10,8 @@
     "standalone",
     "minimal-ui"
   ],
-  "background_color": "#0f1621",
-  "theme_color": "#0b8f81",
+  "background_color": "#050e1d",
+  "theme_color": "#0a1628",
   "orientation": "portrait",
   "lang": "en-ZA",
   "categories": [
@@ -40,6 +40,12 @@
     {
       "src": "icons/icon-144x144.png",
       "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-152x152.png",
+      "sizes": "152x152",
       "type": "image/png",
       "purpose": "any maskable"
     },

@@ -1,6 +1,6 @@
 {
   "appId": "com.taxifare.driver",
-  "appName": "Taxi Fare",
+  "appName": "InsightRide",
   "webDir": "www",
   "bundledWebRuntime": false
 }
