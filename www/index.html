@@ -1,755 +1,773 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Taxi Fare - Driver Tracking</title>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#00bfa5">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Taxi Fare">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<style>
-:root {
-  --primary:#00bfa5; --primary-d:#00897b; --primary-l:#80deea; --primary-xl:#b2dfdb;
-  --accent:#ff6b6b; --accent-d:#d32f2f; --accent-l:#ffcdd2; --accent-xl:#ffebee;
-  --success:#4caf50; --success-d:#388e3c; --success-l:#c8e6c9; --success-xl:#f1f8e9;
-  --warning:#ff9800; --warning-d:#e65100; --warning-l:#ffe0b2; --warning-xl:#fff3e0;
-  --danger:#f44336; --danger-d:#c62828; --danger-l:#ffcdd2; --danger-xl:#ffebee;
-  --info:#2196f3; --info-d:#1565c0; --info-l:#bbdefb; --info-xl:#e3f2fd;
-  --bg:#f8f9fa; --card:#ffffff; --text:#1a1e2e; --text-light:#637081; --border:#e0e0e0;
-  --shadow-s:0 2px 8px rgba(0,0,0,0.08); --shadow-m:0 4px 16px rgba(0,0,0,0.12);
-  --r:12px; --r-s:8px; --safe-bottom:env(safe-area-inset-bottom);
-}
-[data-theme="dark"] {
-  --bg:#0f1419; --card:#1a1e2e; --text:#f0f2f5; --text-light:#a0a8b8;
-  --border:#2d3139; --shadow-s:0 2px 8px rgba(0,0,0,0.3);
-}
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden}
-body{font-family:"Inter",sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;transition:background 0.3s,color 0.3s}
-
-/* HEADER */
-.header{background:linear-gradient(135deg,var(--primary-d),var(--primary));padding:16px 16px calc(16px + var(--safe-top));display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:var(--shadow-m);z-index:10;color:white}
-.header-title{font-weight:700;font-size:20px}
-.header-subtitle{font-size:11px;opacity:0.85;margin-top:2px}
-.header-right{display:flex;gap:10px;align-items:center}
-.btn-icon{background:rgba(255,255,255,0.2);border:none;color:white;width:40px;height:40px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all 0.2s}
-.btn-icon:active{transform:scale(0.9)}
-
-/* NAV */
-.nav{display:flex;background:var(--card);border-bottom:2px solid var(--border);overflow-x:auto;flex-shrink:0}
-.nav-btn{flex:none;padding:12px 16px;font-size:12px;font-weight:600;color:var(--text-light);background:none;border:none;cursor:pointer;border-bottom:3px solid transparent;transition:all 0.2s;white-space:nowrap}
-.nav-btn:hover,.nav-btn.active{color:var(--primary)}
-.nav-btn.active{border-bottom-color:var(--primary)}
-
-/* BODY */
-.body{flex:1;overflow-y:auto;padding-bottom:var(--safe-bottom)}
-.screen{display:none;padding:14px}
-.screen.active{display:block;animation:fadeUp 0.3s ease}
-@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-
-/* CARD */
-.card{background:var(--card);border-radius:var(--r);padding:16px;margin-bottom:12px;box-shadow:var(--shadow-s);border:1px solid var(--border)}
-.card-title{font-weight:700;font-size:15px;color:var(--primary);margin-bottom:12px;display:flex;align-items:center;gap:8px}
-
-/* BUTTONS */
-.btn{width:100%;padding:12px;border:none;border-radius:var(--r-s);font-family:"Inter",sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:8px}
-.btn:active{transform:scale(0.98)}
-.btn:hover{transform:translateY(-2px);box-shadow:var(--shadow-m)}
-.btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary-d));color:white}
-.btn-success{background:linear-gradient(135deg,var(--success),var(--success-d));color:white}
-.btn-danger{background:linear-gradient(135deg,var(--danger),var(--danger-d));color:white}
-.btn-secondary{background:var(--card);color:var(--primary);border:2px solid var(--primary)}
-.btn-sm{width:auto;padding:8px 14px;font-size:12px;border-radius:6px}
-
-/* FORMS */
-.fg{margin-bottom:12px}
-.fg label{display:block;font-size:12px;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
-.fg input,.fg select,.fg textarea{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:var(--r-s);font-family:"Inter",sans-serif;font-size:14px;color:var(--text);background:var(--bg);transition:border 0.15s;outline:none}
-.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--primary);background:var(--card)}
-.fg textarea{resize:none;height:70px}
-.row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-
-/* STATS */
-.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}
-.stat{background:var(--card);border-radius:var(--r);padding:14px;text-align:center;box-shadow:var(--shadow-s);border:1px solid var(--border)}
-.stat .num{font-family:"JetBrains Mono",monospace;font-size:24px;font-weight:700;line-height:1}
-.stat .label{font-size:11px;font-weight:600;color:var(--text-light);text-transform:uppercase;letter-spacing:0.5px;margin-top:6px}
-.stat.primary .num{color:var(--primary-d)}
-.stat.success .num{color:var(--success-d)}
-.stat.warning .num{color:var(--warning-d)}
-.stat.danger .num{color:var(--danger-d)}
-
-/* TRIP LIST */
-.trip-card{background:var(--card);border-radius:var(--r);padding:12px;margin-bottom:10px;border-left:4px solid var(--primary);box-shadow:var(--shadow-s);cursor:pointer;transition:all 0.2s}
-.trip-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-m)}
-.trip-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
-.trip-time{font-weight:600;font-size:13px}
-.trip-fare{font-family:"JetBrains Mono",monospace;font-size:16px;font-weight:700;color:var(--success-d)}
-.trip-location{font-size:12px;color:var(--text-light);margin:4px 0}
-.trip-meta{display:flex;gap:12px;font-size:11px;color:var(--text-light)}
-.trip-badge{background:var(--primary-xl);color:var(--primary-d);padding:3px 8px;border-radius:4px;font-size:10px;font-weight:600}
-
-/* OVERLAY */
-.overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:16px}
-.overlay.show{display:flex}
-.popup{background:var(--card);border-radius:20px;padding:24px;max-width:420px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.2);animation:popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);max-height:85vh;overflow-y:auto}
-@keyframes popIn{from{transform:scale(0.8);opacity:0}to{transform:scale(1);opacity:1}}
-
-/* TOAST */
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);background:#1a1e2e;color:white;padding:12px 20px;border-radius:50px;font-weight:600;font-size:13px;box-shadow:var(--shadow-m);z-index:500;transition:transform 0.3s;max-width:85vw}
-.toast.show{transform:translateX(-50%) translateY(0)}
-.toast.success{background:var(--success-d)}
-.toast.warning{background:var(--warning-d)}
-.toast.danger{background:var(--danger-d)}
-
-/* CHART */
-.chart-wrap{position:relative;height:200px;margin-bottom:12px}
-
-/* EMPTY */
-.empty{text-align:center;padding:32px 20px;color:var(--text-light)}
-.empty-icon{font-size:48px;margin-bottom:12px}
-.empty-text{font-size:14px}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Taxi Fare | Driver Operations</title>
+  <meta name="description" content="Taxi Fare is an offline-first driver operations app for South African taxi drivers.">
+  <meta name="theme-color" content="#0b8f81">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Taxi Fare">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-
-<!-- HEADER -->
-<div class="header">
-  <div>
-    <div class="header-title">💰 Taxi Fare</div>
-    <div class="header-subtitle">Track. Analyze. Earn More.</div>
-  </div>
-  <div class="header-right">
-    <button class="btn-icon" onclick="toggleDark()" id="darkBtn">🌙</button>
-    <button class="btn-icon" onclick="openSettings()">⚙️</button>
-  </div>
-</div>
-
-<!-- NAV -->
-<div class="nav">
-  <button class="nav-btn active" onclick="switchTab('dashboard')">📊 Dashboard</button>
-  <button class="nav-btn" onclick="switchTab('trips')">🚕 Trips</button>
-  <button class="nav-btn" onclick="switchTab('expenses')">💸 Expenses</button>
-  <button class="nav-btn" onclick="switchTab('reports')">📈 Reports</button>
-  <button class="nav-btn" onclick="switchTab('settings')">⚙️ Settings</button>
-</div>
-
-<!-- BODY -->
-<div class="body">
-
-<!-- DASHBOARD -->
-<div class="screen active" id="sc-dashboard">
-  <div class="stats-grid">
-    <div class="stat primary">
-      <div class="num" id="today-trips">0</div>
-      <div class="label">Today's Trips</div>
-    </div>
-    <div class="stat success">
-      <div class="num" id="today-income">R0</div>
-      <div class="label">Today Income</div>
-    </div>
-    <div class="stat warning">
-      <div class="num" id="today-expenses">R0</div>
-      <div class="label">Today Expenses</div>
-    </div>
-    <div class="stat primary">
-      <div class="num" id="today-net">R0</div>
-      <div class="label">Today Net</div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">📊 This Month Summary</div>
-    <div class="stats-grid">
-      <div style="background:var(--success-xl);padding:12px;border-radius:var(--r-s);text-align:center">
-        <div style="font-size:18px;font-weight:700;color:var(--success-d)" id="month-income">R0</div>
-        <div style="font-size:11px;color:var(--success-d);margin-top:4px;font-weight:600">Total Income</div>
-      </div>
-      <div style="background:var(--danger-xl);padding:12px;border-radius:var(--r-s);text-align:center">
-        <div style="font-size:18px;font-weight:700;color:var(--danger-d)" id="month-expenses">R0</div>
-        <div style="font-size:11px;color:var(--danger-d);margin-top:4px;font-weight:600">Total Expenses</div>
-      </div>
-      <div style="background:var(--primary-xl);padding:12px;border-radius:var(--r-s);text-align:center;grid-column:1/-1">
-        <div style="font-size:20px;font-weight:800;color:var(--primary-d)" id="month-net">R0</div>
-        <div style="font-size:11px;color:var(--primary-d);margin-top:4px;font-weight:600">Monthly Net Profit</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">📈 Income Trend</div>
-    <div class="chart-wrap"><canvas id="chartIncome"></canvas></div>
-  </div>
-
-  <button class="btn btn-primary" onclick="openAddTrip()" style="margin-bottom:16px">
-    <span>➕</span> <span>Log New Trip</span>
-  </button>
-</div>
-
-<!-- TRIPS -->
-<div class="screen" id="sc-trips">
-  <div style="margin-bottom:14px">
-    <button class="btn btn-primary" onclick="openAddTrip()">➕ Log Trip</button>
-  </div>
-  <div id="tripsList"></div>
-  <div id="tripsEmpty" class="empty" style="display:none">
-    <div class="empty-icon">🚕</div>
-    <div class="empty-text">No trips logged yet. Start tracking your earnings!</div>
-  </div>
-</div>
-
-<!-- EXPENSES -->
-<div class="screen" id="sc-expenses">
-  <div style="margin-bottom:14px">
-    <button class="btn btn-primary" onclick="openAddExpense()">➕ Add Expense</button>
-  </div>
-  <div id="expensesList"></div>
-  <div id="expensesEmpty" class="empty" style="display:none">
-    <div class="empty-icon">💸</div>
-    <div class="empty-text">No expenses logged yet.</div>
-  </div>
-</div>
-
-<!-- REPORTS -->
-<div class="screen" id="sc-reports">
-  <div class="card">
-    <div class="card-title">📅 Select Period</div>
-    <div class="row-2">
-      <div class="fg">
-        <label>From Date</label>
-        <input type="date" id="reportFrom" onchange="generateReport()">
-      </div>
-      <div class="fg">
-        <label>To Date</label>
-        <input type="date" id="reportTo" onchange="generateReport()">
-      </div>
-    </div>
-  </div>
-  <div id="reportContent"></div>
-  <button class="btn btn-success" onclick="exportToCSV()" style="margin-top:12px">📥 Export to Excel</button>
-</div>
-
-<!-- SETTINGS -->
-<div class="screen" id="sc-settings">
-  <div class="card">
-    <div class="card-title">👤 Driver Info</div>
-    <div class="fg">
-      <label>Full Name</label>
-      <input type="text" id="driverName" placeholder="Your name">
-    </div>
-    <div class="fg">
-      <label>Vehicle License Plate</label>
-      <input type="text" id="vehiclePlate" placeholder="e.g. ABC123GP">
-    </div>
-    <div class="fg">
-      <label>Phone Number</label>
-      <input type="tel" id="driverPhone" placeholder="+27 72 123 4567">
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">⚙️ Preferences</div>
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)">
-      <span style="font-weight:600">Dark Mode</span>
-      <select id="darkMode" onchange="setDarkMode(this.value)">
-        <option value="off">Off</option>
-        <option value="on">On</option>
-      </select>
-    </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0">
-      <span style="font-weight:600">Currency</span>
-      <select id="currency" onchange="setCurrency(this.value)">
-        <option value="ZAR">ZAR (R)</option>
-        <option value="USD">USD ($)</option>
-        <option value="EUR">EUR (€)</option>
-      </select>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">📊 Data Management</div>
-    <button class="btn btn-secondary btn-sm" onclick="backupData()" style="margin-bottom:8px">💾 Backup Data</button>
-    <button class="btn btn-secondary btn-sm" onclick="clearAllData()">🗑️ Clear All Data</button>
-  </div>
-
-  <button class="btn btn-primary" onclick="saveSettings()" style="margin-top:16px">✅ Save Settings</button>
-</div>
-
-</div>
-
-<!-- POPUPS -->
-<div class="overlay" id="tripOverlay">
-  <div class="popup">
-    <h2 style="margin-bottom:16px;color:var(--primary)">🚕 Log Trip</h2>
-    <div class="fg">
-      <label>Date & Time</label>
-      <input type="datetime-local" id="tripDateTime">
-    </div>
-    <div class="row-2">
-      <div class="fg">
-        <label>Pickup Location</label>
-        <input type="text" id="tripPickup" placeholder="e.g. Sandton">
-      </div>
-      <div class="fg">
-        <label>Dropoff Location</label>
-        <input type="text" id="tripDropoff" placeholder="e.g. Jhb">
-      </div>
-    </div>
-    <div class="row-2">
-      <div class="fg">
-        <label>Distance (km)</label>
-        <input type="number" id="tripDistance" placeholder="0.0" step="0.1">
-      </div>
-      <div class="fg">
-        <label>Duration (min)</label>
-        <input type="number" id="tripDuration" placeholder="0" step="1">
-      </div>
-    </div>
-    <div class="row-2">
-      <div class="fg">
-        <label>Fare (R)</label>
-        <input type="number" id="tripFare" placeholder="0.00" step="0.01">
-      </div>
-      <div class="fg">
-        <label>Tips (R)</label>
-        <input type="number" id="tripTips" placeholder="0.00" step="0.01">
-      </div>
-    </div>
-    <div class="fg">
-      <label>Payment Method</label>
-      <select id="tripPayment">
-        <option value="cash">Cash</option>
-        <option value="card">Card</option>
-        <option value="mobile">Mobile Payment</option>
-        <option value="mixed">Mixed</option>
-      </select>
-    </div>
-    <div class="fg">
-      <label>Passenger Name (Optional)</label>
-      <input type="text" id="tripPassenger" placeholder="Customer name">
-    </div>
-    <div class="fg">
-      <label>Notes</label>
-      <textarea id="tripNotes" placeholder="Any notes..."></textarea>
-    </div>
-    <div style="display:flex;gap:8px;margin-top:14px">
-      <button class="btn btn-secondary" onclick="closeOverlay('tripOverlay')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveTrip()" style="flex:2">✅ Save Trip</button>
-    </div>
-  </div>
-</div>
-
-<div class="overlay" id="expenseOverlay">
-  <div class="popup">
-    <h2 style="margin-bottom:16px;color:var(--primary)">💸 Add Expense</h2>
-    <div class="fg">
-      <label>Date</label>
-      <input type="date" id="expenseDate">
-    </div>
-    <div class="fg">
-      <label>Category</label>
-      <select id="expenseCategory">
-        <option value="fuel">⛽ Fuel</option>
-        <option value="maintenance">🔧 Maintenance</option>
-        <option value="toll">🛣️ Toll</option>
-        <option value="parking">🅿️ Parking</option>
-        <option value="cleaning">🧼 Cleaning</option>
-        <option value="insurance">📋 Insurance</option>
-        <option value="registration">📝 Registration</option>
-        <option value="other">📌 Other</option>
-      </select>
-    </div>
-    <div class="row-2">
-      <div class="fg">
-        <label>Amount (R)</label>
-        <input type="number" id="expenseAmount" placeholder="0.00" step="0.01">
-      </div>
-      <div class="fg">
-        <label>Quantity</label>
-        <input type="number" id="expenseQty" placeholder="1" value="1">
-      </div>
-    </div>
-    <div class="fg">
-      <label>Description</label>
-      <input type="text" id="expenseDesc" placeholder="e.g. Shell - 50L">
-    </div>
-    <div class="fg">
-      <label>Receipt</label>
-      <input type="file" id="expenseReceipt" accept="image/*">
-    </div>
-    <div style="display:flex;gap:8px;margin-top:14px">
-      <button class="btn btn-secondary" onclick="closeOverlay('expenseOverlay')">Cancel</button>
-      <button class="btn btn-primary" onclick="saveExpense()" style="flex:2">✅ Save Expense</button>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<script>
-const STORE_KEY = 'taxiFareV1';
-let DB = (() => { try { const r = localStorage.getItem(STORE_KEY); return r ? JSON.parse(r) : defaultDB(); } catch(e) { return defaultDB(); } })();
-
-function defaultDB() {
-  return {
-    trips: [],
-    expenses: [],
-    settings: { driverName: '', vehiclePlate: '', driverPhone: '', currency: 'ZAR', darkMode: false }
-  };
-}
-
-function saveLocal() { try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch(e) {} }
-
-/* THEME */
-const DARK = localStorage.getItem('taxiFare_dark') === '1';
-if (DARK) { document.documentElement.setAttribute('data-theme','dark'); document.getElementById('darkBtn').textContent = '☀️'; }
-
-function toggleDark() {
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  if (isDark) {
-    document.documentElement.removeAttribute('data-theme');
-    document.getElementById('darkBtn').textContent = '🌙';
-    localStorage.setItem('taxiFare_dark', '0');
-  } else {
-    document.documentElement.setAttribute('data-theme','dark');
-    document.getElementById('darkBtn').textContent = '☀️';
-    localStorage.setItem('taxiFare_dark', '1');
-  }
-}
-
-function toast(msg, type='info') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast ' + type;
-  t.classList.add('show');
-  setTimeout(() => { t.classList.remove('show'); }, 3000);
-}
-
-/* NAVIGATION */
-function switchTab(tab) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById('sc-' + tab).classList.add('active');
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
-  if (tab === 'dashboard') renderDashboard();
-  if (tab === 'trips') renderTrips();
-  if (tab === 'expenses') renderExpenses();
-  if (tab === 'reports') generateReport();
-}
-
-/* DASHBOARD */
-function renderDashboard() {
-  const today = new Date().toDateString();
-  const todayTrips = DB.trips.filter(t => new Date(t.dateTime).toDateString() === today);
-  const todayExp = DB.expenses.filter(e => new Date(e.date).toDateString() === today);
-  
-  const todayIncome = todayTrips.reduce((sum, t) => sum + (t.fare || 0) + (t.tips || 0), 0);
-  const todayExpenses = todayExp.reduce((sum, e) => sum + (e.amount || 0), 0);
-  
-  document.getElementById('today-trips').textContent = todayTrips.length;
-  document.getElementById('today-income').textContent = 'R' + todayIncome.toFixed(2);
-  document.getElementById('today-expenses').textContent = 'R' + todayExpenses.toFixed(2);
-  document.getElementById('today-net').textContent = 'R' + (todayIncome - todayExpenses).toFixed(2);
-  
-  // Month stats
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthTrips = DB.trips.filter(t => new Date(t.dateTime) >= monthStart);
-  const monthExp = DB.expenses.filter(e => new Date(e.date) >= monthStart);
-  
-  const monthIncome = monthTrips.reduce((sum, t) => sum + (t.fare || 0) + (t.tips || 0), 0);
-  const monthExpenses = monthExp.reduce((sum, e) => sum + (e.amount || 0), 0);
-  
-  document.getElementById('month-income').textContent = 'R' + monthIncome.toFixed(2);
-  document.getElementById('month-expenses').textContent = 'R' + monthExpenses.toFixed(2);
-  document.getElementById('month-net').textContent = 'R' + (monthIncome - monthExpenses).toFixed(2);
-  
-  renderChart();
-}
-
-function renderChart() {
-  const ctx = document.getElementById('chartIncome');
-  if (!ctx) return;
-  const last7Days = Array.from({length:7}, (_,i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (6-i));
-    return d.toDateString();
-  });
-  const data = last7Days.map(day => {
-    return DB.trips.filter(t => new Date(t.dateTime).toDateString() === day)
-      .reduce((sum, t) => sum + (t.fare || 0) + (t.tips || 0), 0);
-  });
-  if (window.incomeChart) window.incomeChart.destroy();
-  window.incomeChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: last7Days.map(d => new Date(d).toLocaleDateString('en-ZA', {weekday:'short', month:'short', day:'numeric'})),
-      datasets: [{label:'Income (R)', data, backgroundColor:'#00bfa5', borderRadius:6}]
-    },
-    options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}
-  });
-}
-
-/* TRIPS */
-function openAddTrip() {
-  const now = new Date().toISOString().slice(0,16);
-  document.getElementById('tripDateTime').value = now;
-  document.getElementById('tripPickup').value = '';
-  document.getElementById('tripDropoff').value = '';
-  document.getElementById('tripDistance').value = '';
-  document.getElementById('tripDuration').value = '';
-  document.getElementById('tripFare').value = '';
-  document.getElementById('tripTips').value = '';
-  document.getElementById('tripPassenger').value = '';
-  document.getElementById('tripNotes').value = '';
-  document.getElementById('tripOverlay').classList.add('show');
-}
-
-function saveTrip() {
-  const trip = {
-    id: 'T' + Date.now(),
-    dateTime: document.getElementById('tripDateTime').value,
-    pickup: document.getElementById('tripPickup').value || 'N/A',
-    dropoff: document.getElementById('tripDropoff').value || 'N/A',
-    distance: parseFloat(document.getElementById('tripDistance').value) || 0,
-    duration: parseInt(document.getElementById('tripDuration').value) || 0,
-    fare: parseFloat(document.getElementById('tripFare').value) || 0,
-    tips: parseFloat(document.getElementById('tripTips').value) || 0,
-    payment: document.getElementById('tripPayment').value,
-    passenger: document.getElementById('tripPassenger').value || 'Unknown',
-    notes: document.getElementById('tripNotes').value || ''
-  };
-  if (!trip.dateTime || !trip.fare) { toast('Please fill required fields',  'warning'); return; }
-  DB.trips.push(trip);
-  saveLocal();
-  closeOverlay('tripOverlay');
-  renderTrips();
-  renderDashboard();
-  toast('Trip saved!', 'success');
-}
-
-function renderTrips() {
-  const trips = DB.trips.sort((a,b) => new Date(b.dateTime) - new Date(a.dateTime));
-  const el = document.getElementById('tripsList');
-  if (!trips.length) {
-    document.getElementById('tripsEmpty').style.display = 'block';
-    el.innerHTML = '';
-    return;
-  }
-  document.getElementById('tripsEmpty').style.display = 'none';
-  el.innerHTML = trips.map(t => {
-    const date = new Date(t.dateTime).toLocaleDateString('en-ZA');
-    const time = new Date(t.dateTime).toLocaleTimeString('en-ZA', {hour:'2-digit', minute:'2-digit'});
-    const total = (t.fare + t.tips).toFixed(2);
-    return `<div class="trip-card">
-      <div class="trip-header">
-        <div style="flex:1">
-          <div class="trip-time">${date} @ ${time}</div>
-          <div class="trip-location">📍 ${t.pickup} → ${t.dropoff}</div>
-        </div>
-        <div class="trip-fare">R${total}</div>
-      </div>
-      <div class="trip-meta">
-        <span>🚗 ${t.distance}km</span>
-        <span>⏱️ ${t.duration}min</span>
-        <span class="trip-badge">${t.payment.toUpperCase()}</span>
-        <span style="flex:1;text-align:right;cursor:pointer" onclick="deleteTrip('${t.id}')">🗑️</span>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function deleteTrip(id) {
-  DB.trips = DB.trips.filter(t => t.id !== id);
-  saveLocal();
-  renderTrips();
-  renderDashboard();
-  toast('Trip deleted', 'info');
-}
-
-/* EXPENSES */
-function openAddExpense() {
-  document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
-  document.getElementById('expenseCategory').value = 'fuel';
-  document.getElementById('expenseAmount').value = '';
-  document.getElementById('expenseQty').value = '1';
-  document.getElementById('expenseDesc').value = '';
-  document.getElementById('expenseReceipt').value = '';
-  document.getElementById('expenseOverlay').classList.add('show');
-}
-
-function saveExpense() {
-  const expense = {
-    id: 'E' + Date.now(),
-    date: document.getElementById('expenseDate').value,
-    category: document.getElementById('expenseCategory').value,
-    amount: parseFloat(document.getElementById('expenseAmount').value) || 0,
-    qty: parseInt(document.getElementById('expenseQty').value) || 1,
-    description: document.getElementById('expenseDesc').value || 'N/A'
-  };
-  if (!expense.date || !expense.amount) { toast('Please fill required fields', 'warning'); return; }
-  DB.expenses.push(expense);
-  saveLocal();
-  closeOverlay('expenseOverlay');
-  renderExpenses();
-  renderDashboard();
-  toast('Expense saved!', 'success');
-}
-
-function renderExpenses() {
-  const expenses = DB.expenses.sort((a,b) => new Date(b.date) - new Date(a.date));
-  const el = document.getElementById('expensesList');
-  if (!expenses.length) {
-    document.getElementById('expensesEmpty').style.display = 'block';
-    el.innerHTML = '';
-    return;
-  }
-  document.getElementById('expensesEmpty').style.display = 'none';
-  const categories = {'fuel':'⛽','maintenance':'🔧','toll':'🛣️','parking':'🅿️','cleaning':'🧼','insurance':'📋','registration':'📝','other':'📌'};
-  el.innerHTML = expenses.map(e => {
-    const date = new Date(e.date).toLocaleDateString('en-ZA');
-    return `<div class="trip-card" style="border-left-color:var(--danger)">
-      <div class="trip-header">
-        <div style="flex:1">
-          <div class="trip-time">${date}</div>
-          <div class="trip-location">${categories[e.category]} ${e.category.toUpperCase()}</div>
-          <div class="trip-location" style="font-size:12px">${e.description}</div>
-        </div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:var(--danger-d)">R${e.amount.toFixed(2)}</div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-/* REPORTS & EXPORT */
-function generateReport() {
-  const from = document.getElementById('reportFrom').value || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
-  const to = document.getElementById('reportTo').value || new Date().toISOString().split('T')[0];
-  
-  const trips = DB.trips.filter(t => t.dateTime >= from && t.dateTime <= to);
-  const expenses = DB.expenses.filter(e => e.date >= from && e.date <= to);
-  
-  const income = trips.reduce((sum, t) => sum + (t.fare || 0) + (t.tips || 0), 0);
-  const totalExp = expenses.reduce((sum, e) => sum + (e.amount || 0), 0);
-  const profit = income - totalExp;
-  
-  const report = `
-    <div class="card">
-      <div class="card-title">📊 Report Summary</div>
-      <div style="padding:12px;background:var(--bg);border-radius:var(--r-s);margin-bottom:12px;font-size:12px">
-        <div style="margin-bottom:8px">Period: ${from} to ${to}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
-          <div style="background:var(--success-xl);padding:10px;border-radius:6px;text-align:center">
-            <div style="font-size:16px;font-weight:700;color:var(--success-d)">R${income.toFixed(2)}</div>
-            <div style="font-size:10px;color:var(--success-d);margin-top:4px">Total Income</div>
-          </div>
-          <div style="background:var(--danger-xl);padding:10px;border-radius:6px;text-align:center">
-            <div style="font-size:16px;font-weight:700;color:var(--danger-d)">R${totalExp.toFixed(2)}</div>
-            <div style="font-size:10px;color:var(--danger-d);margin-top:4px">Expenses</div>
-          </div>
-          <div style="background:var(--primary-xl);padding:10px;border-radius:6px;text-align:center;grid-column:1/-1">
-            <div style="font-size:18px;font-weight:800;color:var(--primary-d)">R${profit.toFixed(2)}</div>
-            <div style="font-size:10px;color:var(--primary-d);margin-top:4px">Net Profit</div>
-          </div>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-mark">TF</div>
+        <div>
+          <h1 class="brand-title">Taxi Fare</h1>
+          <p class="brand-subtitle">Driver operations, reports, and monthly invoices.</p>
         </div>
       </div>
-    </div>
-    <div class="card">
-      <div class="card-title">🚕 Trip Analytics</div>
-      <div style="font-size:12px;line-height:1.8">
-        <div>Trips: ${trips.length}</div>
-        <div>Avg Fare: R${trips.length ? (trips.reduce((s,t) => s + t.fare, 0) / trips.length).toFixed(2) : '0'}</div>
-        <div>Total Distance: ${trips.reduce((s,t) => s + t.distance, 0).toFixed(1)}km</div>
-        <div>Total Duration: ${trips.reduce((s,t) => s + t.duration, 0)}min</div>
+      <div class="header-meta">
+        <span class="pill role-pill" id="roleBadge">Owner</span>
+        <span class="pill connection-pill" id="connectionBadge">Offline ready</span>
+        <button class="icon-btn" id="themeToggleBtn" type="button" aria-label="Toggle theme">Theme</button>
       </div>
-    </div>
-  `;
-  document.getElementById('reportContent').innerHTML = report;
-}
+    </header>
 
-function exportToCSV() {
-  const from = document.getElementById('reportFrom').value || '2000-01-01';
-  const to = document.getElementById('reportTo').value || new Date().toISOString().split('T')[0];
-  
-  const trips = DB.trips.filter(t => t.dateTime >= from && t.dateTime <= to);
-  const expenses = DB.expenses.filter(e => e.date >= from && e.date <= to);
-  
-  let csv = 'TAXI FARE - INCOME & EXPENSE REPORT\\n\\n';
-  csv += `Driver: ${DB.settings.driverName}\\nPlate: ${DB.settings.vehiclePlate}\\nPeriod: ${from} to ${to}\\n\\n`;
-  csv += 'TRIPS\\nDate,Time,Pickup,Dropoff,Distance,Duration,Fare,Tips,Total,Payment\\n';
-  trips.forEach(t => {
-    const dt = new Date(t.dateTime);
-    csv += `${dt.toLocaleDateString('en-ZA')},${dt.toLocaleTimeString('en-ZA')},${t.pickup},${t.dropoff},${t.distance},${t.duration},${t.fare},${t.tips},${t.fare+t.tips},${t.payment}\\n`;
-  });
-  
-  csv += '\\nEXPENSES\\nDate,Category,Amount,Qty,Description\\n';
-  expenses.forEach(e => {
-    csv += `${e.date},${e.category},${e.amount},${e.qty},"${e.description}"\\n`;
-  });
-  
-  const income = trips.reduce((s,t) => s + t.fare + t.tips, 0);
-  const totalExp = expenses.reduce((s,e) => s + e.amount, 0);
-  csv += `\\nSUMMARY\\nTotal Income,R${income.toFixed(2)}\\nTotal Expenses,R${totalExp.toFixed(2)}\\nNet Profit,R${(income-totalExp).toFixed(2)}\\n`;
-  
-  const blob = new Blob([csv], {type:'text/csv'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `Taxi-Fare-Report-${from}-to-${to}.csv`;
-  a.click();
-  toast('Report exported!', 'success');
-}
+    <nav class="app-nav" id="appNav" aria-label="Primary">
+      <button class="nav-btn active" type="button" data-screen-target="dashboard">Dashboard</button>
+      <button class="nav-btn" type="button" data-screen-target="trips">Trips</button>
+      <button class="nav-btn" type="button" data-screen-target="expenses">Expenses</button>
+      <button class="nav-btn" type="button" data-screen-target="customers">Customers</button>
+      <button class="nav-btn" type="button" data-screen-target="invoices">Invoices</button>
+      <button class="nav-btn" type="button" data-screen-target="reports">Reports</button>
+      <button class="nav-btn" type="button" data-screen-target="settings">Settings</button>
+    </nav>
 
-/* SETTINGS */
-function openSettings() {
-  document.getElementById('driverName').value = DB.settings.driverName || '';
-  document.getElementById('vehiclePlate').value = DB.settings.vehiclePlate || '';
-  document.getElementById('driverPhone').value = DB.settings.driverPhone || '';
-  switchTab('settings');
-}
+    <main class="app-body">
+      <section class="screen active" id="screen-dashboard" data-screen="dashboard">
+        <div class="card hero-card">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Business pulse</p>
+              <h2 class="section-title">Daily dashboard</h2>
+              <p class="section-copy">Track cash-up totals, key income drivers, and period performance at a glance.</p>
+            </div>
+            <div class="quick-chip-row" id="dashboardRangeChips">
+              <button class="chip active" type="button" data-dashboard-range="today">Today</button>
+              <button class="chip" type="button" data-dashboard-range="7d">7 days</button>
+              <button class="chip" type="button" data-dashboard-range="30d">30 days</button>
+              <button class="chip" type="button" data-dashboard-range="month">This month</button>
+            </div>
+          </div>
 
-function saveSettings() {
-  DB.settings.driverName = document.getElementById('driverName').value;
-  DB.settings.vehiclePlate = document.getElementById('vehiclePlate').value;
-  DB.settings.driverPhone = document.getElementById('driverPhone').value;
-  saveLocal();
-  toast('Settings saved!', 'success');
-}
+          <div class="stats-grid" id="dashboardTopStats">
+            <article class="stat-card">
+              <p class="stat-label">Trips</p>
+              <h3 class="stat-value" id="dashboardTripCount">0</h3>
+              <p class="stat-foot">Selected period</p>
+            </article>
+            <article class="stat-card stat-card-success">
+              <p class="stat-label">Income</p>
+              <h3 class="stat-value" id="dashboardIncome">R0.00</h3>
+              <p class="stat-foot">Fares plus tips</p>
+            </article>
+            <article class="stat-card stat-card-warning">
+              <p class="stat-label">Expenses</p>
+              <h3 class="stat-value" id="dashboardExpenses">R0.00</h3>
+              <p class="stat-foot">Operational spend</p>
+            </article>
+            <article class="stat-card stat-card-primary">
+              <p class="stat-label">Net profit</p>
+              <h3 class="stat-value" id="dashboardNet">R0.00</h3>
+              <p class="stat-foot" id="dashboardRangeLabel">Current view</p>
+            </article>
+          </div>
+        </div>
 
-function backupData() {
-  const blob = new Blob([JSON.stringify(DB, null, 2)], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `Taxi-Fare-Backup-${new Date().toISOString().split('T')[0]}.json`;
-  a.click();
-  toast('Backup created!', 'success');
-}
+        <div class="split-grid">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <p class="eyebrow">End of day</p>
+                <h3 class="card-title">Daily cash-up</h3>
+              </div>
+              <span class="pill subtle-pill" id="cashUpDateLabel">Today</span>
+            </div>
+            <div class="metric-grid metric-grid-compact">
+              <article class="metric-card">
+                <span class="metric-label">Trips today</span>
+                <strong class="metric-value" id="cashUpTripCount">0</strong>
+              </article>
+              <article class="metric-card">
+                <span class="metric-label">Income today</span>
+                <strong class="metric-value" id="cashUpIncome">R0.00</strong>
+              </article>
+              <article class="metric-card">
+                <span class="metric-label">Expenses today</span>
+                <strong class="metric-value" id="cashUpExpenses">R0.00</strong>
+              </article>
+              <article class="metric-card">
+                <span class="metric-label">Net amount</span>
+                <strong class="metric-value" id="cashUpNet">R0.00</strong>
+              </article>
+              <article class="metric-card">
+                <span class="metric-label">Cash collected</span>
+                <strong class="metric-value" id="cashCollected">R0.00</strong>
+              </article>
+              <article class="metric-card">
+                <span class="metric-label">Card or mobile</span>
+                <strong class="metric-value" id="digitalCollected">R0.00</strong>
+              </article>
+            </div>
+          </div>
 
-function clearAllData() {
-  if (confirm('Are you sure? This cannot be undone.')) {
-    DB = defaultDB();
-    saveLocal();
-    toast('All data cleared', 'info');
-    renderDashboard();
-  }
-}
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <p class="eyebrow">Smarter decisions</p>
+                <h3 class="card-title">Business insights</h3>
+              </div>
+            </div>
+            <div class="metric-grid" id="dashboardInsights"></div>
+          </div>
+        </div>
 
-function closeOverlay(id) {
-  document.getElementById(id).classList.remove('show');
-}
+        <div class="split-grid">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <p class="eyebrow">Momentum</p>
+                <h3 class="card-title">Income trend</h3>
+              </div>
+              <span class="muted-copy">Last 7 days</span>
+            </div>
+            <div class="chart-panel">
+              <canvas id="incomeTrendChart" aria-label="Income trend chart"></canvas>
+            </div>
+          </div>
 
-/* INIT */
-document.getElementById('reportFrom').value = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
-document.getElementById('reportTo').value = new Date().toISOString().split('T')[0];
-renderDashboard();
-</script>
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <p class="eyebrow">Quick actions</p>
+                <h3 class="card-title">Capture work fast</h3>
+              </div>
+            </div>
+            <div class="action-grid">
+              <button class="btn btn-primary" type="button" id="dashboardAddTripBtn">Log trip</button>
+              <button class="btn btn-secondary" type="button" id="dashboardAddExpenseBtn">Add expense</button>
+              <button class="btn btn-secondary" type="button" id="dashboardAddCustomerBtn">New customer</button>
+              <button class="btn btn-secondary" type="button" id="dashboardOpenInvoicesBtn">Build invoice</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-trips" data-screen="trips">
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Trip book</p>
+              <h2 class="section-title">Trips</h2>
+              <p class="section-copy">Log journeys, assign them to customers, and keep payment totals accurate for cash-up and invoicing.</p>
+            </div>
+            <button class="btn btn-primary btn-inline" type="button" id="openTripModalBtn">Log trip</button>
+          </div>
+
+          <div class="toolbar toolbar-stack">
+            <div class="toolbar-fields">
+              <label class="field">
+                <span>Filter by customer</span>
+                <select id="tripCustomerFilter"></select>
+              </label>
+              <label class="field">
+                <span>Search</span>
+                <input id="tripSearchInput" type="search" placeholder="Route, passenger, or note">
+              </label>
+            </div>
+            <div class="summary-strip" id="tripSummaryStrip"></div>
+          </div>
+        </div>
+
+        <div class="list-stack" id="tripList"></div>
+        <div class="empty-state" id="tripEmptyState" hidden>
+          <h3>No trips logged yet</h3>
+          <p>Start with your first trip to unlock reporting, dashboard metrics, and invoicing.</p>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-expenses" data-screen="expenses">
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Cost control</p>
+              <h2 class="section-title">Expenses</h2>
+              <p class="section-copy">Track running costs, attach receipts, and keep proof ready for reports and customer work.</p>
+            </div>
+            <button class="btn btn-primary btn-inline" type="button" id="openExpenseModalBtn">Add expense</button>
+          </div>
+
+          <div class="toolbar toolbar-stack">
+            <div class="toolbar-fields">
+              <label class="field">
+                <span>Category</span>
+                <select id="expenseCategoryFilter">
+                  <option value="all">All categories</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Search</span>
+                <input id="expenseSearchInput" type="search" placeholder="Supplier, note, or category">
+              </label>
+            </div>
+            <div class="summary-strip" id="expenseSummaryStrip"></div>
+          </div>
+        </div>
+
+        <div class="list-stack" id="expenseList"></div>
+        <div class="empty-state" id="expenseEmptyState" hidden>
+          <h3>No expenses saved yet</h3>
+          <p>Add operating costs to get accurate profit and end-of-day numbers.</p>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-customers" data-screen="customers">
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Regular work</p>
+              <h2 class="section-title">Customers</h2>
+              <p class="section-copy">Manage monthly and regular customers, route notes, billing information, and invoice defaults.</p>
+            </div>
+            <button class="btn btn-primary btn-inline" type="button" id="openCustomerModalBtn">Add customer</button>
+          </div>
+
+          <div class="toolbar toolbar-stack">
+            <div class="toolbar-fields">
+              <label class="field">
+                <span>Status</span>
+                <select id="customerStatusFilter">
+                  <option value="active">Active only</option>
+                  <option value="all">All customers</option>
+                  <option value="inactive">Inactive only</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Search</span>
+                <input id="customerSearchInput" type="search" placeholder="Name, phone, or company">
+              </label>
+            </div>
+            <div class="summary-strip" id="customerSummaryStrip"></div>
+          </div>
+        </div>
+
+        <div class="list-stack" id="customerList"></div>
+        <div class="empty-state" id="customerEmptyState" hidden>
+          <h3>No customers yet</h3>
+          <p>Add regular riders and monthly accounts to link trips and generate polished invoices.</p>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-invoices" data-screen="invoices">
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Client billing</p>
+              <h2 class="section-title">Monthly invoices</h2>
+              <p class="section-copy">Pull customer trips into a premium PDF invoice, save the invoice record, and share it from your phone.</p>
+            </div>
+          </div>
+
+          <div class="invoice-builder">
+            <div class="form-grid form-grid-wide">
+              <label class="field">
+                <span>Customer</span>
+                <select id="invoiceCustomerSelect"></select>
+              </label>
+              <label class="field">
+                <span>Invoice number</span>
+                <div class="input-with-action">
+                  <input id="invoiceNumberInput" type="text" placeholder="TF-202603-001">
+                  <button class="btn btn-secondary btn-inline-small" type="button" id="generateInvoiceNumberBtn">Generate</button>
+                </div>
+              </label>
+              <label class="field">
+                <span>Issue date</span>
+                <input id="invoiceIssueDate" type="date">
+              </label>
+              <label class="field">
+                <span>Due date</span>
+                <input id="invoiceDueDate" type="date">
+              </label>
+              <label class="field">
+                <span>From</span>
+                <input id="invoiceFromDate" type="date">
+              </label>
+              <label class="field">
+                <span>To</span>
+                <input id="invoiceToDate" type="date">
+              </label>
+              <label class="field">
+                <span>PDF theme</span>
+                <select id="invoiceThemeSelect">
+                  <option value="modern">Modern Professional</option>
+                  <option value="minimal">Clean Minimal</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Payment terms</span>
+                <input id="invoicePaymentTerms" type="text" placeholder="Payment due within 7 days.">
+              </label>
+              <label class="field field-full">
+                <span>Invoice notes</span>
+                <textarea id="invoiceNotesInput" rows="3" placeholder="Thank you for your continued business."></textarea>
+              </label>
+            </div>
+
+            <div class="invoice-preview" id="invoicePreview">
+              <div class="empty-state empty-state-compact">
+                <h3>Select a customer and date range</h3>
+                <p>Your invoice preview will appear here once matching trips are found.</p>
+              </div>
+            </div>
+
+            <div class="action-row">
+              <button class="btn btn-secondary" type="button" id="saveInvoiceBtn">Save invoice</button>
+              <button class="btn btn-primary" type="button" id="downloadInvoiceBtn">Download PDF</button>
+              <button class="btn btn-secondary" type="button" id="shareInvoiceBtn">Share PDF</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Invoice archive</p>
+              <h3 class="card-title">Saved invoices</h3>
+            </div>
+          </div>
+          <div class="list-stack" id="invoiceArchive"></div>
+          <div class="empty-state empty-state-compact" id="invoiceArchiveEmpty" hidden>
+            <h3>No invoices saved yet</h3>
+            <p>Saved invoices appear here so you can re-export them later.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-reports" data-screen="reports">
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Performance review</p>
+              <h2 class="section-title">Reports</h2>
+              <p class="section-copy">Use reliable date filtering, customer filters, and deeper analytics to understand your business properly.</p>
+            </div>
+            <button class="btn btn-primary btn-inline" type="button" id="exportWorkbookBtn">Export workbook</button>
+          </div>
+
+          <div class="toolbar toolbar-stack">
+            <div class="toolbar-fields">
+              <label class="field">
+                <span>From</span>
+                <input id="reportFromDate" type="date">
+              </label>
+              <label class="field">
+                <span>To</span>
+                <input id="reportToDate" type="date">
+              </label>
+              <label class="field">
+                <span>Customer</span>
+                <select id="reportCustomerFilter"></select>
+              </label>
+            </div>
+            <div class="quick-chip-row" id="reportPresetChips">
+              <button class="chip" type="button" data-report-preset="today">Today</button>
+              <button class="chip" type="button" data-report-preset="7d">7 days</button>
+              <button class="chip active" type="button" data-report-preset="month">This month</button>
+              <button class="chip" type="button" data-report-preset="30d">30 days</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-grid" id="reportTopStats"></div>
+
+        <div class="split-grid">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <p class="eyebrow">Efficiency</p>
+                <h3 class="card-title">Driver metrics</h3>
+              </div>
+            </div>
+            <div class="metric-grid" id="reportMetrics"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <p class="eyebrow">Breakdown</p>
+                <h3 class="card-title">Routes and costs</h3>
+              </div>
+            </div>
+            <div class="breakdown-list" id="reportBreakdowns"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-settings" data-screen="settings">
+        <form id="settingsForm" class="screen-stack" novalidate>
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <p class="eyebrow">Driver profile</p>
+                <h3 class="card-title">Business details</h3>
+              </div>
+            </div>
+            <div class="form-grid form-grid-wide">
+              <label class="field">
+                <span>Driver name</span>
+                <input id="settingsDriverName" type="text" placeholder="Your full name">
+              </label>
+              <label class="field">
+                <span>Business or trading name</span>
+                <input id="settingsBusinessName" type="text" placeholder="Taxi business name">
+              </label>
+              <label class="field">
+                <span>Phone number</span>
+                <input id="settingsDriverPhone" type="tel" placeholder="+27 72 123 4567">
+              </label>
+              <label class="field">
+                <span>Email</span>
+                <input id="settingsDriverEmail" type="email" placeholder="name@example.com">
+              </label>
+              <label class="field">
+                <span>Vehicle plate</span>
+                <input id="settingsVehiclePlate" type="text" placeholder="ABC 123 GP">
+              </label>
+              <label class="field">
+                <span>VAT or tax number</span>
+                <input id="settingsVatNumber" type="text" placeholder="Optional">
+              </label>
+              <label class="field field-full">
+                <span>Business address</span>
+                <textarea id="settingsBusinessAddress" rows="3" placeholder="Address for invoice billing section"></textarea>
+              </label>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <p class="eyebrow">Preferences</p>
+                <h3 class="card-title">App defaults</h3>
+              </div>
+            </div>
+            <div class="form-grid form-grid-wide">
+              <label class="field">
+                <span>Theme</span>
+                <select id="settingsTheme">
+                  <option value="system">System</option>
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Currency</span>
+                <select id="settingsCurrency">
+                  <option value="ZAR">South African Rand</option>
+                  <option value="USD">US Dollar</option>
+                  <option value="EUR">Euro</option>
+                  <option value="GBP">British Pound</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Role mode</span>
+                <select id="settingsRole">
+                  <option value="owner">Owner</option>
+                  <option value="manager">Manager</option>
+                  <option value="driver">Driver</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Default invoice theme</span>
+                <select id="settingsInvoiceTheme">
+                  <option value="modern">Modern Professional</option>
+                  <option value="minimal">Clean Minimal</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Invoice prefix</span>
+                <input id="settingsInvoicePrefix" type="text" maxlength="10" placeholder="TF">
+              </label>
+              <label class="field">
+                <span>Default payment terms</span>
+                <input id="settingsPaymentTerms" type="text" placeholder="Payment due within 7 days.">
+              </label>
+              <label class="field field-full">
+                <span>Default invoice notes</span>
+                <textarea id="settingsInvoiceNotes" rows="3" placeholder="Optional footer note for invoices"></textarea>
+              </label>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <p class="eyebrow">Data management</p>
+                <h3 class="card-title">Backup and restore</h3>
+              </div>
+            </div>
+            <div class="action-grid action-grid-wide">
+              <button class="btn btn-secondary" type="button" id="exportBackupBtn">Export JSON backup</button>
+              <button class="btn btn-secondary" type="button" id="restoreBackupBtn">Restore from backup</button>
+              <button class="btn btn-danger" type="button" id="clearDataBtn">Clear all local data</button>
+            </div>
+            <label class="toggle-row" for="safetyBackupToggle">
+              <input id="safetyBackupToggle" type="checkbox" checked>
+              <span>Create a safety backup before restore</span>
+            </label>
+            <div class="meta-panel" id="storageSummary"></div>
+            <p class="helper-text">Backups include trips, expenses, customers, invoices, settings, and stored receipt images.</p>
+          </div>
+
+          <div class="card permission-note" id="rolePermissionNote"></div>
+
+          <div class="action-row">
+            <button class="btn btn-primary" type="submit">Save settings</button>
+          </div>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-shell" id="modalShell" aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal></div>
+
+    <section class="modal" id="tripModal" role="dialog" aria-modal="true" aria-labelledby="tripModalTitle" hidden>
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow">Trip entry</p>
+          <h3 class="modal-title" id="tripModalTitle">Log trip</h3>
+        </div>
+        <button class="icon-btn modal-close" type="button" data-close-modal>Close</button>
+      </div>
+      <form id="tripForm" class="screen-stack" novalidate>
+        <input id="tripIdInput" type="hidden">
+        <div class="form-grid">
+          <label class="field">
+            <span>Date and time</span>
+            <input id="tripDateTimeInput" type="datetime-local" required>
+          </label>
+          <label class="field">
+            <span>Customer</span>
+            <select id="tripCustomerSelect"></select>
+          </label>
+          <label class="field">
+            <span>Pickup</span>
+            <input id="tripPickupInput" type="text" placeholder="Pickup area" required>
+          </label>
+          <label class="field">
+            <span>Dropoff</span>
+            <input id="tripDropoffInput" type="text" placeholder="Dropoff area" required>
+          </label>
+          <label class="field">
+            <span>Passenger name</span>
+            <input id="tripPassengerInput" type="text" placeholder="Optional">
+          </label>
+          <label class="field">
+            <span>Payment method</span>
+            <select id="tripPaymentInput">
+              <option value="cash">Cash</option>
+              <option value="card">Card</option>
+              <option value="mobile">Mobile payment</option>
+              <option value="mixed">Mixed</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Distance km</span>
+            <input id="tripDistanceInput" type="number" min="0" step="0.1" placeholder="0.0">
+          </label>
+          <label class="field">
+            <span>Duration minutes</span>
+            <input id="tripDurationInput" type="number" min="0" step="1" placeholder="0">
+          </label>
+          <label class="field">
+            <span>Fare</span>
+            <input id="tripFareInput" type="number" min="0" step="0.01" placeholder="0.00" required>
+          </label>
+          <label class="field">
+            <span>Tips</span>
+            <input id="tripTipsInput" type="number" min="0" step="0.01" placeholder="0.00">
+          </label>
+          <label class="field field-full hidden" id="tripCashPortionField">
+            <span>Cash portion for mixed payment</span>
+            <input id="tripCashPortionInput" type="number" min="0" step="0.01" placeholder="0.00">
+            <small class="helper-text">The remaining amount is counted as card or mobile.</small>
+          </label>
+          <label class="field field-full">
+            <span>Notes</span>
+            <textarea id="tripNotesInput" rows="3" placeholder="Shift notes, route notes, or customer detail"></textarea>
+          </label>
+        </div>
+        <div class="action-row">
+          <button class="btn btn-secondary" type="button" data-close-modal>Cancel</button>
+          <button class="btn btn-danger hidden" type="button" id="deleteTripBtn">Delete</button>
+          <button class="btn btn-primary" type="submit">Save trip</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="modal" id="expenseModal" role="dialog" aria-modal="true" aria-labelledby="expenseModalTitle" hidden>
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow">Expense entry</p>
+          <h3 class="modal-title" id="expenseModalTitle">Add expense</h3>
+        </div>
+        <button class="icon-btn modal-close" type="button" data-close-modal>Close</button>
+      </div>
+      <form id="expenseForm" class="screen-stack" novalidate>
+        <input id="expenseIdInput" type="hidden">
+        <div class="form-grid">
+          <label class="field">
+            <span>Date</span>
+            <input id="expenseDateInput" type="date" required>
+          </label>
+          <label class="field">
+            <span>Category</span>
+            <select id="expenseCategoryInput" required></select>
+          </label>
+          <label class="field">
+            <span>Amount</span>
+            <input id="expenseAmountInput" type="number" min="0" step="0.01" placeholder="0.00" required>
+          </label>
+          <label class="field">
+            <span>Quantity</span>
+            <input id="expenseQuantityInput" type="number" min="0" step="0.1" placeholder="1">
+          </label>
+          <label class="field field-full">
+            <span>Description</span>
+            <input id="expenseDescriptionInput" type="text" placeholder="Fuel, service, parking, or supplier name" required>
+          </label>
+          <label class="field field-full">
+            <span>Receipt image</span>
+            <input id="expenseReceiptInput" type="file" accept="image/*">
+            <small class="helper-text">Receipts are compressed and stored locally for offline viewing.</small>
+          </label>
+        </div>
+        <div class="receipt-state" id="expenseReceiptState"></div>
+        <div class="action-row">
+          <button class="btn btn-secondary" type="button" data-close-modal>Cancel</button>
+          <button class="btn btn-danger hidden" type="button" id="deleteExpenseBtn">Delete</button>
+          <button class="btn btn-primary" type="submit">Save expense</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="modal" id="customerModal" role="dialog" aria-modal="true" aria-labelledby="customerModalTitle" hidden>
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow">Customer details</p>
+          <h3 class="modal-title" id="customerModalTitle">Add customer</h3>
+        </div>
+        <button class="icon-btn modal-close" type="button" data-close-modal>Close</button>
+      </div>
+      <form id="customerForm" class="screen-stack" novalidate>
+        <input id="customerIdInput" type="hidden">
+        <div class="form-grid">
+          <label class="field">
+            <span>Full name or business name</span>
+            <input id="customerNameInput" type="text" placeholder="Customer name" required>
+          </label>
+          <label class="field">
+            <span>Billing type</span>
+            <select id="customerBillingTypeInput">
+              <option value="monthly">Monthly customer</option>
+              <option value="regular">Regular customer</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Phone number</span>
+            <input id="customerPhoneInput" type="tel" placeholder="+27 72 123 4567">
+          </label>
+          <label class="field">
+            <span>Email</span>
+            <input id="customerEmailInput" type="email" placeholder="Optional">
+          </label>
+          <label class="field">
+            <span>Company details</span>
+            <input id="customerCompanyInput" type="text" placeholder="Company or department">
+          </label>
+          <label class="field">
+            <span>VAT or tax number</span>
+            <input id="customerTaxInput" type="text" placeholder="Optional">
+          </label>
+          <label class="field field-full">
+            <span>Pickup area or route notes</span>
+            <textarea id="customerRouteNotesInput" rows="2" placeholder="Usual route, pickup gate, building, or collection notes"></textarea>
+          </label>
+          <label class="field field-full">
+            <span>Invoice notes</span>
+            <textarea id="customerInvoiceNotesInput" rows="2" placeholder="Client-specific invoice notes"></textarea>
+          </label>
+          <label class="field">
+            <span>Status</span>
+            <select id="customerStatusInput">
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </label>
+        </div>
+        <div class="action-row">
+          <button class="btn btn-secondary" type="button" data-close-modal>Cancel</button>
+          <button class="btn btn-danger hidden" type="button" id="deleteCustomerBtn">Delete</button>
+          <button class="btn btn-primary" type="submit">Save customer</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="modal" id="receiptModal" role="dialog" aria-modal="true" aria-labelledby="receiptModalTitle" hidden>
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow">Stored receipt</p>
+          <h3 class="modal-title" id="receiptModalTitle">Receipt preview</h3>
+        </div>
+        <button class="icon-btn modal-close" type="button" data-close-modal>Close</button>
+      </div>
+      <div class="receipt-viewer">
+        <img id="receiptPreviewImage" alt="Receipt preview">
+        <div class="meta-panel" id="receiptMetaPanel"></div>
+      </div>
+    </section>
+
+    <section class="modal modal-small" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle" hidden>
+      <div class="modal-header">
+        <div>
+          <p class="eyebrow">Please confirm</p>
+          <h3 class="modal-title" id="confirmModalTitle">Confirm action</h3>
+        </div>
+        <button class="icon-btn modal-close" type="button" data-close-modal>Close</button>
+      </div>
+      <div class="screen-stack">
+        <p class="section-copy" id="confirmModalMessage">This action cannot be undone.</p>
+        <div class="action-row">
+          <button class="btn btn-secondary" type="button" id="confirmCancelBtn">Cancel</button>
+          <button class="btn btn-danger" type="button" id="confirmAcceptBtn">Continue</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <input id="restoreBackupInput" type="file" accept="application/json,.json" hidden>
+
+  <script src="vendor/chart.umd.min.js" defer></script>
+  <script src="vendor/xlsx.full.min.js" defer></script>
+  <script src="vendor/jspdf.umd.min.js" defer></script>
+  <script src="vendor/jspdf.plugin.autotable.min.js" defer></script>
+  <script src="js/utils.js" defer></script>
+  <script src="js/storage.js" defer></script>
+  <script src="js/trips.js" defer></script>
+  <script src="js/expenses.js" defer></script>
+  <script src="js/customers.js" defer></script>
+  <script src="js/reports.js" defer></script>
+  <script src="js/settings.js" defer></script>
+  <script src="js/invoices.js" defer></script>
+  <script src="js/app.js" defer></script>
 </body>
 </html>

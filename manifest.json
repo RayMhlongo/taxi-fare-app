@@ -1,24 +1,65 @@
 {
   "name": "Taxi Fare",
   "short_name": "Taxi Fare",
-  "description": "Professional income & expense tracking for taxi drivers in South Africa",
+  "description": "Offline-first driver operations app for South African taxi drivers.",
   "id": "./?app=taxi-fare",
   "start_url": "./index.html",
-  "display": "standalone",
-  "background_color": "#1a1e2e",
-  "theme_color": "#00bfa5",
-  "orientation": "portrait",
   "scope": "./",
-  "display_override": ["standalone", "minimal-ui"],
-  "icons": [
-    {"src": "icons/icon-72x72.png", "sizes": "72x72", "type": "image/png", "purpose": "any maskable"},
-    {"src": "icons/icon-96x96.png", "sizes": "96x96", "type": "image/png", "purpose": "any maskable"},
-    {"src": "icons/icon-128x128.png", "sizes": "128x128", "type": "image/png", "purpose": "any maskable"},
-    {"src": "icons/icon-144x144.png", "sizes": "144x144", "type": "image/png", "purpose": "any maskable"},
-    {"src": "icons/icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
-    {"src": "icons/icon-384x384.png", "sizes": "384x384", "type": "image/png", "purpose": "any maskable"},
-    {"src": "icons/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
   ],
-  "categories": ["productivity", "business"],
-  "lang": "en-ZA"
+  "background_color": "#0f1621",
+  "theme_color": "#0b8f81",
+  "orientation": "portrait",
+  "lang": "en-ZA",
+  "categories": [
+    "business",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
 }

@@ -4,12 +4,17 @@
   "private": true,
   "description": "Professional taxi driver income & expense tracking app for South Africa",
   "scripts": {
+    "build": "node scripts/build.mjs",
     "cap:add:android": "capacitor add android",
-    "cap:sync": "capacitor sync android",
-    "apk:debug": "cd android && ./gradlew assembleDebug"
+    "cap:sync": "npm run build && npx capacitor sync android",
+    "apk:debug": "npm run cap:sync && cd android && gradlew.bat assembleDebug"
   },
   "dependencies": {
-    "@capacitor/core": "^7.4.3"
+    "@capacitor/core": "^7.4.3",
+    "chart.js": "^4.5.1",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.7",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@capacitor/android": "^7.4.3",

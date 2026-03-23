@@ -2,9 +2,5 @@
   "appId": "com.taxifare.driver",
   "appName": "Taxi Fare",
   "webDir": "www",
-  "bundledWebRuntime": false,
-  "server": {
-    "url": "https://RayMhlongo.github.io/taxi-fare-app/",
-    "cleartext": false
-  }
+  "bundledWebRuntime": false
 }

@@ -2,7 +2,7 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
 
 permissions:
@@ -92,33 +92,29 @@ jobs:
 
       - name: Create Release with APK
         uses: softprops/action-gh-release@v1
-        if: github.event_name == 'workflow_dispatch'
         with:
           files: android/app/build/outputs/apk/debug/app-debug.apk
-          tag_name: v${{ github.run_number }}
-          release_name: Taxi Fare APK v${{ github.run_number }}
+          tag_name: apk-build-${{ github.run_number }}
+          release_name: Taxi Fare APK Build ${{ github.run_number }}
           body: |
             # Taxi Fare - Android APK
-            
-            **Build Date**: ${{ github.event.head_commit.timestamp }}
-            **Professional Driver Analytics App**
-            
-            ## 📲 Installation Instructions
-            
-            1. Download the APK file below
-            2. Transfer to your Android phone
-            3. Open file manager and tap the APK file
-            4. Tap "Install" (enable "Unknown Sources" if prompted)
-            5. App opens - ready to use! 🎉
-            
-            ## ✨ Features
-            - ✅ Trip logging with 10+ metrics
-            - ✅ Expense tracking (8 categories)
-            - ✅ Advanced reporting & analytics
-            - ✅ CSV export to Excel
-            - ✅ Dark mode support
-            - ✅ Full offline support
-            - ✅ Professional dashboard
+
+            Build date: ${{ github.event.head_commit.timestamp }}
+
+            Included in this build:
+            - Modular offline-first app structure
+            - Trip and expense editing
+            - Customer management and customer-linked trips
+            - JSON backup and restore
+            - Receipt image handling
+            - Premium monthly invoice PDF generation
+            - Improved dashboard insights and reports
+
+            Install steps:
+            1. Download the APK file below.
+            2. Transfer it to your Android phone.
+            3. Open the file and allow app installs if prompted.
+            4. Launch Taxi Fare and start logging trips offline.
           draft: false
           prerelease: false
         env:

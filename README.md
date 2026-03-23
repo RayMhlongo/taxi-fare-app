@@ -1,255 +1,297 @@
-# Taxi Fare - Professional Driver Analytics App
+# Taxi Fare
 
-A comprehensive solution for South African taxi drivers to manage trips, track expenses, and analyze profitability in real-time.
+Taxi Fare is an offline-first driver operations app for South African taxi drivers.
 
-## Features
+It helps drivers and small operators:
 
-### 📊 Dashboard
-- **Daily Overview**: Today's trip count, total income, expenses, and net profit
-- **Monthly Summary**: Visual overview of financial performance with gradient cards
-- **7-Day Income Trend**: Chart visualization of earnings over the past week
+- log trips
+- log expenses
+- attach and view local receipt images
+- track profit and daily cash-up totals
+- manage regular and monthly customers
+- link trips to customers
+- generate polished customer invoice PDFs
+- export business reports and backups
 
-### 🚗 Trip Management
-Log detailed trip information:
-- Date and time of trip
-- Pickup and dropoff locations
-- Distance traveled (km)
-- Trip duration (minutes)
-- Fare charged
-- Tips received
-- Payment method (cash, card, mobile, other)
-- Passenger name
-- Additional notes
+The app remains lightweight, local-first, and suitable for mobile web and Capacitor Android packaging.
 
-### 💰 Expense Tracking
-Track operational expenses across 8 categories:
-- **Fuel**: Petrol/diesel costs
-- **Maintenance**: Vehicle repairs and servicing
-- **Toll**: Road toll fees
-- **Parking**: Parking charges
-- **Cleaning**: Vehicle cleaning costs
-- **Insurance**: Insurance premiums
-- **Registration**: Vehicle registration and licensing
-- **Other**: Miscellaneous expenses
+## What Changed
 
-Each expense includes:
-- Amount and quantity
-- Description
-- Receipt attachment option
-- Date logged
+This repo has been upgraded from a single-file MVP into a modular app with:
 
-### 📈 Advanced Reports
-Generate comprehensive reports with:
-- Custom date range selection
-- Trip analytics (count, average fare, total distance, total hours)
-- Financial summary (income, expenses, net profit)
-- Data filtering and sorting
+- split HTML, CSS, and focused JavaScript modules
+- versioned storage with migration from the old `taxiFareV1` format
+- working theme, role, and currency settings
+- consistent currency formatting through shared utilities
+- safer date filtering with real `Date` handling
+- trip and expense editing plus confirmed delete flows
+- JSON backup export and full restore import
+- customer management and customer-linked trips
+- monthly invoice generation with premium PDF themes
+- improved reports, dashboard metrics, and daily cash-up insights
+- local vendor assets for better offline behavior
+- a build step that syncs the web app to `www/` for Capacitor
 
-### 💾 Data Export
-- **CSV Export**: Export all trip and expense data to CSV format
-- **JSON Backup**: Backup all data as JSON for import/restore
-- Compatible with Excel, Google Sheets, and other spreadsheet applications
+## Main Features
 
-### ⚙️ Settings
-- **Driver Profile**: Name, vehicle plate number, contact information
-- **Preferences**: Dark mode toggle, preferred currency selection
-- **Data Management**: Backup, restore, and clear data options
+### Dashboard
 
-### 🌓 Dark Mode
-Professional dark theme with:
-- Teal/green primary color scheme (#00bfa5)
-- Optimized contrast ratios for readability
-- Automatic system preference detection
+- Selected-period income, expenses, and net profit
+- Daily cash-up totals
+- Cash vs card or mobile collection totals
+- Average income per trip
+- Earnings per km
+- Earnings per hour
+- Most profitable route
+- Highest expense category
+- Best earning day
+- 7-day income chart
 
-### 📱 Offline Support
-- Works completely offline with Service Worker
-- All data stored locally via localStorage
-- Automatic synchronization when online
-- No internet required to log trips or expenses
+### Trips
 
-## Technology Stack
+- Create, edit, and delete trips
+- Assign trips to customers
+- Track pickup, dropoff, passenger, fare, tips, distance, and duration
+- Track cash, card, mobile, and mixed payments
+- Capture mixed-payment cash portion for better cash-up accuracy
 
-- **Frontend**: HTML5, CSS3, Vanilla JavaScript
-- **Framework**: Capacitor 7.4.3 (Web to Android bridge)
-- **Charts**: Chart.js 4.4.0
-- **Data**: localStorage with JSON serialization
-- **Build**: GitHub Actions with Gradle
-- **Platform**: Android APK via Capacitor
+### Expenses
 
-## Installation
+- Create, edit, and delete expenses
+- Track categories, quantity, amount, and description
+- Attach receipt images
+- View receipts later offline
+- Graceful receipt-storage fallback if image storage fails
 
-### From Source
-```bash
-# Clone the repository
-git clone https://github.com/RayMhlongo/taxi-fare-app.git
-cd taxi-fare-app
+### Customers
 
-# Install dependencies
-npm install
+- Monthly and regular customer profiles
+- Phone, email, route notes, company details, tax number, and invoice notes
+- Active and inactive status
+- Quick jump from customer to invoice builder
 
-# Run locally (web)
-npm start
+### Invoices
 
-# Build for Android
-npx capacitor add android
-npx capacitor sync android
-cd android
-./gradlew assembleRelease
+- Select a customer and billing date range
+- Automatically gather all linked trips in that period
+- Manual or generated invoice number
+- Issue date, due date, payment terms, and notes
+- Driver and business details pulled from settings
+- Two PDF themes:
+  - Modern Professional
+  - Clean Minimal
+- Saved invoice archive for re-export and sharing later
+
+### Reports
+
+- Reliable date-range filtering
+- Optional customer filter
+- Summary cards for trips, income, expenses, and net profit
+- Route, payment-method, and expense breakdowns
+- XLSX workbook export with summary, trips, expenses, customers, and invoices sheets
+
+### Settings and Role Mode
+
+- Light, dark, or system theme
+- Currency selection across the whole app
+- Owner, Manager, and Driver role modes
+- Backup export, restore import, and clear-data tools
+
+## Project Structure
+
+```text
+index.html
+styles.css
+manifest.json
+service-worker.js
+js/
+  app.js
+  storage.js
+  utils.js
+  trips.js
+  expenses.js
+  customers.js
+  reports.js
+  settings.js
+  invoices.js
+scripts/
+  build.mjs
+vendor/
+www/
 ```
 
-### From GitHub Releases
-1. Go to [GitHub Releases](https://github.com/RayMhlongo/taxi-fare-app/releases)
-2. Download the latest `app-release-unsigned.apk`
-3. Transfer to Android device
-4. Install APK (may need to enable "Unknown Sources" in settings)
+## Local Development
 
-## Usage
+### Install
 
-### Logging a Trip
-1. Go to **Trips** tab
-2. Click **Log New Trip**
-3. Fill in all trip details:
-   - Date and time
-   - Locations
-   - Distance and duration
-   - Fare and tips
-   - Payment method
-   - Passenger info
-4. Click **Save Trip**
-
-### Tracking Expenses
-1. Go to **Expenses** tab
-2. Click **Add Expense**
-3. Select expense category
-4. Enter amount, description
-5. Optionally upload receipt
-6. Click **Save Expense**
-
-### Generating Reports
-1. Go to **Reports** tab
-2. Select date range using "From" and "To" date pickers
-3. View analytics:
-   - Trip count and average fare
-   - Total distance and time
-   - Income/expense summary
-   - Net profit calculation
-
-### Exporting Data
-1. Go to **Reports** tab
-2. Click **Export to CSV**
-3. Save file to device
-4. Open in Excel or Google Sheets
-
-### Settings
-1. Go to **Settings** tab
-2. Update driver profile information
-3. Toggle dark mode
-4. Select preferred currency
-5. Backup or clear data as needed
-
-## Metrics & Analytics
-
-The app calculates key performance indicators for data-informed decision making:
-
-- **Trip Metrics**: Count, average fare, per-km income, per-hour income
-- **Distance Tracking**: Total km, distance distribution
-- **Time Analysis**: Total hours, average trip duration
-- **Financial Metrics**: Gross income, total expenses, net profit, profit margin
-- **Payment Methods**: Track which payment methods generate most income
-- **Expense Categories**: Identify highest expense categories by amount
-- **Trend Analysis**: 7-day income chart for performance visualization
-- **Period Comparison**: Compare metrics across date ranges
-
-## Data Storage
-
-All data is stored locally on your device in the browser database:
-- **Storage Key**: `taxiFareV1`
-- **Data Types**: Trips, Expenses, Settings
-- **Backup Format**: JSON
-- **Export Format**: CSV
-
-### Backup & Restore
-- Use **Settings → Backup Data** to download JSON backup
-- Use **Settings → Restore Data** to import from JSON
-- JSON backups are compatible with other devices
-
-## Privacy & Security
-
-- ✅ All data stored locally on your device
-- ✅ No data sent to external servers
-- ✅ No registration or login required
-- ✅ Full data ownership and control
-- ✅ Easy data export and backup
-
-## Browser Compatibility
-
-- ✅ Chrome/Chromium (recommended)
-- ✅ Firefox
-- ✅ Safari (iOS)
-- ✅ Samsung Internet
-- ✅ All Chromium-based browsers
-
-## Development
-
-### Local Development Server
 ```bash
 npm install
-# Serve on http://localhost:8000
+```
+
+### Build web assets and sync `www/`
+
+```bash
+npm run build
+```
+
+This copies:
+
+- local source files into `www/`
+- browser vendor assets into `vendor/`
+- the same assets into `www/vendor/`
+
+### Preview locally
+
+Use any static server from the repo root, for example:
+
+```bash
 python -m http.server 8000
 ```
 
-### Building for Production
-```bash
-npm install
-npx capacitor sync
-cd android
-./gradlew assembleRelease
+Then open:
+
+```text
+http://localhost:8000
 ```
 
-### GitHub Actions CI/CD
-The app automatically builds an APK on every push to `main` or `master` branch. View build status in [Actions](https://github.com/RayMhlongo/taxi-fare-app/actions).
+### Sync to Capacitor Android
 
-## Troubleshooting
+```bash
+npm run cap:sync
+```
 
-### APK Installation Issues
-- Enable "Unknown Sources" in Android Settings → Security
-- Ensure sufficient storage space (50MB+)
-- Try clearing Play Store cache if previously installed
+### Build Android debug APK on Windows
 
-### Data Not Saving
-- Check browser storage permissions
-- Clear browser cache and cookies
-- Try a different browser
-- Create manual backup before clearing data
+```bash
+npm run apk:debug
+```
 
-### Offline Mode Not Working
-- Ensure Service Worker is installed (requires HTTPS on production)
-- Check browser settings for Service Worker permissions
-- Try reload after first visit
+For macOS or Linux, use the synced Android project and run `./gradlew assembleDebug` from `android/`.
 
-## Support & Feedback
+## Offline and PWA Notes
 
-- 📧 Email: rodgersmhlongo23@gmail.com
-- 🐛 Report issues: [GitHub Issues](https://github.com/RayMhlongo/taxi-fare-app/issues)
-- 💡 Suggestions: Open a discussion or issue
+- The app is local-first and does not require a backend.
+- A service worker precaches the core app shell, modules, vendor libraries, and app icons.
+- All business data is stored on-device.
+- The Capacitor app now uses the local bundled `www/` assets instead of a remote server URL.
+
+## Data Storage
+
+### Main app data
+
+- Storage key: `taxiFareV2`
+- Stored in `localStorage`
+- Contains:
+  - `meta`
+  - `settings`
+  - `trips`
+  - `expenses`
+  - `customers`
+  - `invoices`
+
+### Receipt images
+
+- Stored separately in IndexedDB
+- Database: `taxiFareAssets`
+- Store: `receipts`
+- Images are compressed before saving to reduce storage pressure
+
+### Why receipts are not in `localStorage`
+
+Receipt images are much larger than normal trip and expense records. Keeping them in IndexedDB makes the app more reliable and avoids breaking the main local data store.
+
+## Migration Behavior
+
+The app automatically migrates older data when possible.
+
+### Supported legacy data
+
+- old `taxiFareV1` local storage data
+- old `taxiFare_dark` theme flag
+
+### Migration result
+
+- old trips and expenses are preserved
+- old settings are mapped into the new settings structure
+- customer and invoice collections start empty if they did not exist before
+- migrated data is saved into the new `taxiFareV2` structure
+
+## Backup and Restore
+
+### Backup export
+
+- Exports JSON
+- Includes trips, expenses, customers, invoices, settings, and stored receipts
+
+### Restore import
+
+- Validates backup format before applying it
+- Prevents invalid imports from crashing the app
+- Can create a safety backup before overwrite
+- Rebuilds receipt storage from the imported backup
+
+## Invoice PDF Generation
+
+PDF invoices are generated fully in-browser and work offline after the app shell is cached.
+
+### Included invoice content
+
+- brand header area
+- invoice number
+- issue date
+- due date
+- billed by section
+- billed to section
+- trip line items
+- subtotal
+- tips
+- total
+- payment terms
+- notes
+- footer
+
+### PDF libraries
+
+- `jspdf`
+- `jspdf-autotable`
+
+These were chosen because they are stable, browser-friendly, and practical for lightweight offline PDF generation.
+
+## External Libraries
+
+- `chart.js` for dashboard charts
+- `xlsx` for workbook export
+- `jspdf` for PDF generation
+- `jspdf-autotable` for invoice line-item tables
+- Capacitor for Android packaging
+
+All runtime libraries used by the app are copied into local `vendor/` assets during the build step.
+
+## Limitations
+
+- Customer-specific reports only include customer-linked trip income. Expenses are global operating costs and are not allocated per customer.
+- Browser storage limits vary by device. Large numbers of high-resolution receipts may still hit quota limits, although the app compresses images before saving.
+- There is no backend sync. Backups are the recovery path across devices.
+
+## Recommended Workflow
+
+1. Keep customer profiles up to date in the Customers tab.
+2. Link trips to customers when logging them.
+3. Export a backup regularly from Settings.
+4. Use Reports for business review.
+5. Use Invoices to generate monthly client billing PDFs.
+
+## Changelog Summary
+
+### Current upgrade
+
+- Refactored the single-file MVP into a modular app structure
+- Added migrations, customer management, invoice archiving, and PDF exports
+- Added trip and expense editing plus safer deletes
+- Added backup restore and reliable receipt handling
+- Fixed settings behavior, currency formatting, and report date filtering
+- Improved offline packaging and Capacitor sync behavior
 
 ## License
 
-This project is designed for South African taxi drivers. Use it freely to manage your operations.
-
-## Version History
-
-### v1.0.0 - Initial Release
-- Complete trip logging system
-- Expense tracking across 8 categories
-- Advanced reporting and analytics
-- CSV export functionality
-- Dark mode support
-- Offline-first architecture
-- GitHub Actions automated builds
-
----
-
-**Last Updated**: January 2025
-**Status**: Active Development
-**Target Platforms**: Android 8.0+ (API 26+), Web Browsers
+This project is intended as a practical business tool for taxi drivers and small transport operators.
