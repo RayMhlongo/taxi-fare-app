@@ -52,6 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
     openScreen,
     populateCustomerSelect,
     store,
+    utils,
     ui: {
       closeModal,
       confirm,

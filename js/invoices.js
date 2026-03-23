@@ -239,6 +239,7 @@ window.TaxiFareApp.createInvoicesModule = (app) => {
   }
 
   function persistRecord(invoice) {
+    currentRecordId = invoice.id;
     app.store.update((draft) => {
       const index = draft.invoices.findIndex((item) => item.id === invoice.id);
       if (index >= 0) {
@@ -248,8 +249,6 @@ window.TaxiFareApp.createInvoicesModule = (app) => {
       }
       return draft;
     });
-
-    currentRecordId = invoice.id;
   }
 
   async function persistInvoice(mode) {
