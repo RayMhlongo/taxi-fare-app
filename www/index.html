@@ -42,6 +42,8 @@
         </div>
       </div>
       <div class="header-meta">
+        <span class="pill license-pill" id="licenseBadge">Verification needed</span>
+        <span class="pill build-pill" id="buildBadge">Licensed App</span>
         <span class="pill role-pill" id="roleBadge">Owner</span>
         <span class="pill connection-pill" id="connectionBadge">Offline ready</span>
         <button class="icon-btn" id="themeToggleBtn" type="button" aria-label="Toggle theme">Theme</button>
@@ -58,7 +60,26 @@
       <button class="nav-btn" type="button" data-screen-target="settings">Settings</button>
     </nav>
 
+    <section class="status-banner hidden" id="statusBanner" aria-live="polite">
+      <div>
+        <strong id="statusBannerTitle">Subscription active</strong>
+        <p id="statusBannerMessage">License status will appear here.</p>
+      </div>
+      <div class="status-banner-side">
+        <span class="status-banner-chip" id="statusBannerMeta">Ready</span>
+        <button class="btn btn-secondary btn-inline-small hidden" type="button" id="statusBannerActionBtn">Verify now</button>
+      </div>
+    </section>
+
     <main class="app-body">
+      <section class="ownership-strip" id="ownershipStrip">
+        <div>
+          <strong id="ownershipLabel">Property of Data Insights by Ray</strong>
+          <p id="ownershipCopy">Powered by Data Insights by Ray</p>
+        </div>
+        <span class="watermark-chip" id="installIdChip">Install ----</span>
+      </section>
+
       <section class="screen active" id="screen-dashboard" data-screen="dashboard">
         <div class="card hero-card">
           <div class="section-head">
@@ -527,6 +548,33 @@
           <div class="card">
             <div class="card-header">
               <div>
+                <p class="eyebrow">Access control</p>
+                <h3 class="card-title">Subscription and licensing</h3>
+              </div>
+            </div>
+            <div class="form-grid form-grid-wide">
+              <label class="field">
+                <span>License ID</span>
+                <input id="settingsLicenseId" type="text" placeholder="Enter the issued license ID">
+              </label>
+              <label class="field">
+                <span>Install ID</span>
+                <div class="input-with-action">
+                  <input id="settingsInstallId" type="text" readonly>
+                  <button class="btn btn-secondary btn-inline-small" type="button" id="copyInstallIdBtn">Copy</button>
+                </div>
+              </label>
+              <div class="meta-panel field-full" id="licenseStatusPanel"></div>
+            </div>
+            <div class="action-row">
+              <button class="btn btn-secondary" type="button" id="verifyLicenseBtn">Verify subscription</button>
+            </div>
+            <p class="helper-text" id="licenseHelperText">Subscription status is cached locally for short offline periods and rechecked online when needed.</p>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
                 <p class="eyebrow">Data management</p>
                 <h3 class="card-title">Backup and restore</h3>
               </div>
@@ -541,7 +589,17 @@
               <span>Create a safety backup before restore</span>
             </label>
             <div class="meta-panel" id="storageSummary"></div>
-            <p class="helper-text">Backups include trips, expenses, customers, invoices, settings, and stored receipt images.</p>
+            <p class="helper-text">Backups include trips, expenses, customers, invoices, settings, and stored receipt images. Install and license metadata stay on the current device.</p>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <p class="eyebrow">Ownership</p>
+                <h3 class="card-title">Support and branding</h3>
+              </div>
+            </div>
+            <div class="meta-panel" id="aboutPanel"></div>
           </div>
 
           <div class="card permission-note" id="rolePermissionNote"></div>
@@ -763,8 +821,12 @@
   <script src="vendor/xlsx.full.min.js" defer></script>
   <script src="vendor/jspdf.umd.min.js" defer></script>
   <script src="vendor/jspdf.plugin.autotable.min.js" defer></script>
+  <script src="js/config.js" defer></script>
   <script src="js/utils.js" defer></script>
   <script src="js/storage.js" defer></script>
+  <script src="js/demo.js" defer></script>
+  <script src="js/license.js" defer></script>
+  <script src="js/protection.js" defer></script>
   <script src="js/trips.js" defer></script>
   <script src="js/expenses.js" defer></script>
   <script src="js/customers.js" defer></script>

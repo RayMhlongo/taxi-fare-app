@@ -1,0 +1,30 @@
+window.TaxiFareApp = window.TaxiFareApp || {};
+
+window.TaxiFareApp.config = Object.freeze({
+  APP_BRAND_NAME: "InsightRide",
+  APP_SLUG: "insight-ride",
+  APP_OWNER_NAME: "Data Insights by Ray",
+  SUPPORT_CONTACT: "Contact Data Insights by Ray to activate or renew this app.",
+  DEMO_MODE: false,
+  DEMO_MAX_TRIPS: 30,
+  DEMO_MAX_EXPENSES: 20,
+  DEMO_MAX_CUSTOMERS: 3,
+  DEMO_EXPIRES_DAYS: 14,
+  SUBSCRIPTION_ENABLED: true,
+  SUBSCRIPTION_GRACE_DAYS: 2,
+  MAX_OFFLINE_VERIFICATION_DAYS: 5,
+  LICENSE_CHECK_INTERVAL_HOURS: 12,
+  APP_BRAND_WATERMARK: "Property of Data Insights by Ray",
+  ENABLE_EXPORTS: true,
+  ENABLE_INVOICES: true,
+  ENABLE_BACKUP_RESTORE: true,
+  ENABLE_ADVANCED_REPORTS: true,
+  DEVICE_BINDING_MODE: "soft",
+  DEVELOPER_PREVIEW_ON_LOCALHOST: true,
+  LICENSE_BACKEND: {
+    provider: "supabase",
+    url: "",
+    anonKey: "",
+    functionName: "verify-license",
+  },
+});

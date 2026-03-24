@@ -1,9 +1,11 @@
 window.TaxiFareApp = window.TaxiFareApp || {};
 
 window.TaxiFareApp.utils = (() => {
-  const APP_NAME = "InsightRide";
-  const APP_SLUG = "insight-ride";
-  const BRAND_NAME = "Data Insights by Ray";
+  const runtimeConfig = window.TaxiFareApp.config || {};
+  const APP_NAME = runtimeConfig.APP_BRAND_NAME || "InsightRide";
+  const APP_SLUG = runtimeConfig.APP_SLUG || "insight-ride";
+  const BRAND_NAME = runtimeConfig.APP_OWNER_NAME || "Data Insights by Ray";
+  const SUPPORT_CONTACT = runtimeConfig.SUPPORT_CONTACT || BRAND_NAME;
   const APP_TAGLINE = "Smart fares. Smarter rides.";
   const DEFAULT_LOCALE = "en-ZA";
   const CURRENCY_LOCALES = {
@@ -639,12 +641,36 @@ window.TaxiFareApp.utils = (() => {
     }, null);
   }
 
+  async function copyText(value) {
+    const text = String(value ?? "");
+    if (!text) {
+      return false;
+    }
+
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+
+    const input = document.createElement("textarea");
+    input.value = text;
+    input.setAttribute("readonly", "readonly");
+    input.style.position = "fixed";
+    input.style.opacity = "0";
+    document.body.appendChild(input);
+    input.select();
+    const success = document.execCommand("copy");
+    document.body.removeChild(input);
+    return success;
+  }
+
   return {
     APP_NAME,
     APP_SLUG,
     APP_TAGLINE,
     BILLING_TYPES,
     BRAND_NAME,
+    SUPPORT_CONTACT,
     CURRENCY_LOCALES,
     DEFAULT_LOCALE,
     EXPENSE_CATEGORIES,
@@ -659,6 +685,7 @@ window.TaxiFareApp.utils = (() => {
     buildRouteLabel,
     clone,
     compressImageFile,
+    copyText,
     customerNameFromState,
     downloadBlob,
     endOfDay,

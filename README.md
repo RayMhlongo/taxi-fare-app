@@ -1,101 +1,233 @@
 # InsightRide
 
-InsightRide is an offline-first driver operations app for South African taxi drivers, powered by Data Insights by Ray.
+InsightRide is a mobile-first, offline-first taxi driver operations app for South African drivers, built and branded by Data Insights by Ray.
 
-It helps drivers and small operators:
+This version keeps the existing local-first product workflow and adds practical commercial protection:
 
-- log trips
-- log expenses
-- attach and view local receipt images
-- track profit and daily cash-up totals
-- manage regular and monthly customers
-- link trips to customers
-- generate polished customer invoice PDFs
-- export business reports and backups
+- monthly subscription verification
+- demo mode limits and expiry
+- read-only lockout after expiry
+- install-aware licensing
+- premium feature gating
+- stronger ownership branding inside the app
 
-The app remains lightweight, local-first, and suitable for mobile web and Capacitor Android packaging.
+## Core Product Features
 
-## What Changed
+- trip logging with payment-method tracking
+- expense tracking with offline receipt storage
+- customer management for regular and monthly clients
+- customer-linked trips
+- invoice PDF generation with two layouts
+- dashboard metrics and daily cash-up view
+- workbook export
+- JSON backup and restore
+- offline-first PWA behavior
+- Capacitor Android packaging
 
-This repo has been upgraded from a single-file MVP into a modular app with:
+## New Commercial Protection Layer
 
-- split HTML, CSS, and focused JavaScript modules
-- versioned storage with migration from the old `taxiFareV1` format
-- working theme, role, and currency settings
-- consistent currency formatting through shared utilities
-- safer date filtering with real `Date` handling
-- trip and expense editing plus confirmed delete flows
-- JSON backup export and full restore import
-- customer management and customer-linked trips
-- monthly invoice generation with premium PDF themes
-- improved reports, dashboard metrics, and daily cash-up insights
-- local vendor assets for better offline behavior
-- a build step that syncs the web app to `www/` for Capacitor
+### What was added
 
-## Main Features
+- Central business config in [`js/config.js`](./js/config.js)
+- Demo/review mode rules in [`js/demo.js`](./js/demo.js)
+- Subscription and device-aware verification in [`js/license.js`](./js/license.js)
+- Shared feature-gating and read-only enforcement in [`js/protection.js`](./js/protection.js)
+- Protected storage metadata and migration updates in [`js/storage.js`](./js/storage.js)
+- Visible subscription state, ownership labels, and install ID tools in Settings and the main app shell
 
-### Dashboard
+### Paid subscription behavior
 
-- Selected-period income, expenses, and net profit
-- Daily cash-up totals
-- Cash vs card or mobile collection totals
-- Average income per trip
-- Earnings per km
-- Earnings per hour
-- Most profitable route
-- Highest expense category
-- Best earning day
-- 7-day income chart
+- Each paid driver is expected to have one issued `license_id`
+- A subscription stays valid until `paid_until`
+- A grace period stays valid until `grace_until`
+- The frontend also supports a default 2-day grace calculation when `grace_until` is not explicitly stored
+- Verification is cached locally for short offline periods
+- If verification is overdue or the subscription is expired, the app switches to read-only mode
 
-### Trips
+### Restricted read-only mode
 
-- Create, edit, and delete trips
-- Assign trips to customers
-- Track pickup, dropoff, passenger, fare, and payment method
-- Capture mixed-payment cash portion for better cash-up accuracy
-- Preserve legacy imported distance, duration, tips, and notes data where it already exists
+When the subscription is expired, suspended, missing, unverified for too long, or backend verification is unavailable in production, the app still opens but:
 
-### Expenses
+- trips can be viewed but not added, edited, or deleted
+- expenses can be viewed but not added, edited, or deleted
+- settings can be viewed
+- dashboard can be viewed
+- exports are disabled
+- backup and restore are disabled
+- invoice save/share/download are disabled
+- clear-data is disabled
 
-- Create, edit, and delete expenses
-- Track categories, quantity, amount, and description
-- Attach receipt images
-- View receipts later offline
-- Graceful receipt-storage fallback if image storage fails
+### Demo mode
 
-### Customers
+Demo mode is controlled from [`js/config.js`](./js/config.js).
 
-- Monthly and regular customer profiles
-- Phone, email, route notes, company details, tax number, and invoice notes
-- Active and inactive status
-- Quick jump from customer to invoice builder
+Default demo rules:
 
-### Invoices
+- maximum 30 trips
+- maximum 20 expenses
+- maximum 3 customers
+- clear “Demo Version” labeling
+- “Property of Data Insights by Ray” ownership treatment
+- no workbook export
+- no backup or restore
+- no invoice PDF tools
+- automatic read-only mode after demo expiry
 
-- Select a customer and billing date range
-- Automatically gather all linked trips in that period
-- Manual or generated invoice number
-- Issue date, due date, payment terms, and notes
-- Driver and business details pulled from settings
-- Two PDF themes:
-  - Modern Professional
-  - Clean Minimal
-- Saved invoice archive for re-export and sharing later
+## Config
 
-### Reports
+Business protection is controlled in [`js/config.js`](./js/config.js).
 
-- Reliable date-range filtering
-- Optional customer filter
-- Summary cards for trips, income, expenses, and net profit
-- Route, payment-method, and expense breakdowns
-- XLSX workbook export with summary, trips, expenses, customers, and invoices sheets
+Important keys:
 
-### Settings and Role Mode
+- `DEMO_MODE`
+- `DEMO_MAX_TRIPS`
+- `DEMO_MAX_EXPENSES`
+- `DEMO_MAX_CUSTOMERS`
+- `DEMO_EXPIRES_DAYS`
+- `SUBSCRIPTION_ENABLED`
+- `SUBSCRIPTION_GRACE_DAYS`
+- `MAX_OFFLINE_VERIFICATION_DAYS`
+- `LICENSE_CHECK_INTERVAL_HOURS`
+- `APP_BRAND_NAME`
+- `APP_OWNER_NAME`
+- `SUPPORT_CONTACT`
+- `ENABLE_EXPORTS`
+- `ENABLE_INVOICES`
+- `ENABLE_BACKUP_RESTORE`
+- `ENABLE_ADVANCED_REPORTS`
+- `DEVICE_BINDING_MODE`
+- `DEVELOPER_PREVIEW_ON_LOCALHOST`
+- `LICENSE_BACKEND.url`
+- `LICENSE_BACKEND.anonKey`
+- `LICENSE_BACKEND.functionName`
 
-- Light, dark, or system theme
-- Currency selection across the whole app
-- Owner, Manager, and Driver role modes
-- Backup export, restore import, and clear-data tools
+### Recommended production config flow
+
+1. Keep `SUBSCRIPTION_ENABLED: true`
+2. Keep `DEMO_MODE: false` for paid builds
+3. Set the real Supabase project URL and anon key
+4. Deploy the `verify-license` Supabase Edge Function
+5. Issue a `license_id` per paying driver
+
+### Local developer preview behavior
+
+To avoid blocking normal development, this app allows a visible local preview bypass on `localhost` or `file:` when the backend is not configured and `DEVELOPER_PREVIEW_ON_LOCALHOST` is enabled.
+
+That bypass is only for local development. In production hosting, an unconfigured license backend forces restricted mode.
+
+## Supabase Subscription Backend
+
+This repo now includes a lightweight Supabase scaffold for license verification.
+
+Files:
+
+- [`supabase/migrations/20260324_create_license_tables.sql`](./supabase/migrations/20260324_create_license_tables.sql)
+- [`supabase/functions/verify-license/index.ts`](./supabase/functions/verify-license/index.ts)
+
+### Why Supabase
+
+Supabase is a practical fit for a small commercial app because it gives you:
+
+- a hosted Postgres table for driver licenses
+- an Edge Function for server-side verification
+- an easy admin interface for updating payment status
+- a simple path to future auth or admin dashboards if needed
+
+### Tables
+
+#### `driver_licenses`
+
+Suggested fields:
+
+- `license_id`
+- `driver_name`
+- `business_name`
+- `status`
+- `paid_until`
+- `grace_until`
+- `bound_install_id`
+- `device_fingerprint`
+- `notes`
+- `last_verified_at`
+
+#### `license_verification_log`
+
+Suggested fields:
+
+- verification log id
+- `license_id`
+- `install_id`
+- `device_fingerprint`
+- `result_status`
+- `verified_at`
+- `notes`
+
+### Edge function behavior
+
+The included `verify-license` function:
+
+- receives `licenseId`, `installId`, and `deviceFingerprint`
+- looks up the matching license row
+- derives `active`, `grace`, `expired`, or `suspended`
+- binds the install on first successful verification
+- can soft-enforce one-license-per-device by suspending mismatched installs
+- logs verification attempts
+- returns a minimal response for the frontend to cache locally
+
+### Supabase setup steps
+
+1. Create a Supabase project
+2. Run the SQL in [`supabase/migrations/20260324_create_license_tables.sql`](./supabase/migrations/20260324_create_license_tables.sql)
+3. Deploy the Edge Function in [`supabase/functions/verify-license/index.ts`](./supabase/functions/verify-license/index.ts)
+4. Set Edge Function secrets:
+   - `SUPABASE_URL`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - optional `SUBSCRIPTION_GRACE_DAYS`
+5. Copy the project URL and anon key into [`js/config.js`](./js/config.js)
+6. Add one row per customer into `driver_licenses`
+
+### How to update a driver’s paid status
+
+The simplest admin workflow is:
+
+1. Open the `driver_licenses` table in Supabase
+2. Find the driver’s `license_id`
+3. Set `paid_until` to the paid month end date
+4. Optionally set `grace_until`
+5. Keep `status` as `active` unless you intentionally want to suspend access
+
+Examples:
+
+- paid for March 2026: `paid_until = 2026-03-31`
+- default grace: leave `grace_until` blank and let the server calculate 2 extra days
+- manual hold: set `status = suspended`
+
+## Data Model
+
+Main app data is still stored locally, but the model now includes protected metadata.
+
+Stored in local storage key `taxiFareV2`:
+
+- `meta`
+- `appMeta`
+- `installMeta`
+- `licenseMeta`
+- `settings`
+- `trips`
+- `expenses`
+- `customers`
+- `invoices`
+
+Receipt images remain in IndexedDB:
+
+- database: `taxiFareAssets`
+- store: `receipts`
+
+### Important protection rule
+
+Backups do **not** carry install identity or license verification state.
+
+That is intentional. It reduces abuse from users moving a “paid” state between devices by sharing backup files.
 
 ## Project Structure
 
@@ -105,9 +237,13 @@ styles.css
 manifest.json
 service-worker.js
 js/
+  config.js
   app.js
   storage.js
   utils.js
+  demo.js
+  license.js
+  protection.js
   trips.js
   expenses.js
   customers.js
@@ -116,6 +252,9 @@ js/
   invoices.js
 scripts/
   build.mjs
+supabase/
+  migrations/
+  functions/
 vendor/
 www/
 ```
@@ -134,24 +273,22 @@ npm install
 npm run build
 ```
 
-This copies:
-
-- local source files into `www/`
-- browser vendor assets into `vendor/`
-- the same assets into `www/vendor/`
-
 ### Preview locally
-
-Use any static server from the repo root, for example:
 
 ```bash
 python -m http.server 8000
 ```
 
-Then open:
+Open:
 
 ```text
 http://localhost:8000
+```
+
+### Run browser tests
+
+```bash
+npm run test:e2e
 ```
 
 ### Sync to Capacitor Android
@@ -166,139 +303,44 @@ npm run cap:sync
 npm run apk:debug
 ```
 
-For macOS or Linux, use the synced Android project and run `./gradlew assembleDebug` from `android/`.
+## PWA and Offline Notes
 
-## Offline and PWA Notes
+- The app stays local-first for daily usage
+- The service worker now precaches the new protection modules too
+- License status is cached locally after successful verification
+- Offline tolerance is limited by config
+- Once offline verification is too old, write features lock until the device reconnects
 
-- The app is local-first and does not require a backend.
-- A service worker precaches the core app shell, modules, vendor libraries, and app icons.
-- All business data is stored on-device.
-- The Capacitor app now uses the local bundled `www/` assets instead of a remote server URL.
+## Existing Product Improvements Kept
 
-## Data Storage
+The following existing strengths remain in place:
 
-### Main app data
+- modular JS structure instead of a giant single file
+- reliable currency formatting
+- real Date-based report filtering
+- customer-linked invoicing
+- receipt image storage
+- mobile-first layout
+- working dark mode
+- backup restore and safety backup flow
+- polished invoice PDF output
 
-- Storage key: `taxiFareV2`
-- Stored in `localStorage`
-- Contains:
-  - `meta`
-  - `settings`
-  - `trips`
-  - `expenses`
-  - `customers`
-  - `invoices`
-
-### Receipt images
-
-- Stored separately in IndexedDB
-- Database: `taxiFareAssets`
-- Store: `receipts`
-- Images are compressed before saving to reduce storage pressure
-
-### Why receipts are not in `localStorage`
-
-Receipt images are much larger than normal trip and expense records. Keeping them in IndexedDB makes the app more reliable and avoids breaking the main local data store.
-
-## Migration Behavior
-
-The app automatically migrates older data when possible.
-
-### Supported legacy data
-
-- old `taxiFareV1` local storage data
-- old `taxiFare_dark` theme flag
-
-### Migration result
-
-- old trips and expenses are preserved
-- old settings are mapped into the new settings structure
-- customer and invoice collections start empty if they did not exist before
-- migrated data is saved into the new `taxiFareV2` structure
-
-## Backup and Restore
-
-### Backup export
-
-- Exports JSON
-- Includes trips, expenses, customers, invoices, settings, and stored receipts
-- Uses native save or share flows inside the Android APK when available
-
-### Restore import
-
-- Validates backup format before applying it
-- Prevents invalid imports from crashing the app
-- Can create a safety backup before overwrite
-- Rebuilds receipt storage from the imported backup
-- Uses a hidden file picker flow that works in browser and Capacitor packaging
-
-## Invoice PDF Generation
-
-PDF invoices are generated fully in-browser and work offline after the app shell is cached.
-
-### Included invoice content
-
-- brand header area
-- invoice number
-- issue date
-- due date
-- billed by section
-- billed to section
-- trip line items
-- subtotal
-- tips
-- total
-- payment terms
-- notes
-- footer
-
-### PDF libraries
-
-- `jspdf`
-- `jspdf-autotable`
-
-These were chosen because they are stable, browser-friendly, and practical for lightweight offline PDF generation.
-
-### Native export behavior
-
-- In the web browser, invoice PDFs, workbooks, and backups download normally.
-- In the Android APK, the app uses Capacitor file saving and share-sheet flows so export buttons still work inside a WebView.
-
-## External Libraries
-
-- `chart.js` for dashboard charts
-- `xlsx` for workbook export
-- `jspdf` for PDF generation
-- `jspdf-autotable` for invoice line-item tables
-- Capacitor for Android packaging
-
-All runtime libraries used by the app are copied into local `vendor/` assets during the build step.
-
-## Limitations
-
-- Customer-specific reports only include customer-linked trip income. Expenses are global operating costs and are not allocated per customer.
-- Browser storage limits vary by device. Large numbers of high-resolution receipts may still hit quota limits, although the app compresses images before saving.
-- There is no backend sync. Backups are the recovery path across devices.
-
-## Recommended Workflow
-
-1. Keep customer profiles up to date in the Customers tab.
-2. Link trips to customers when logging them.
-3. Export a backup regularly from Settings.
-4. Use Reports for business review.
-5. Use Invoices to generate monthly client billing PDFs.
-
-## Changelog Summary
+## Changelog
 
 ### Current upgrade
 
-- Refactored the single-file MVP into a modular app structure
-- Added migrations, customer management, invoice archiving, and PDF exports
-- Added trip and expense editing plus safer deletes
-- Added backup restore and reliable receipt handling
-- Fixed settings behavior, currency formatting, and report date filtering
-- Improved offline packaging, native export handling, and Capacitor sync behavior
+- Added config-driven commercial protection
+- Added demo limits and demo expiry handling
+- Added subscription verification, install ID, and device-aware binding support
+- Added shared feature gating for write actions, exports, backups, and invoice PDFs
+- Added visible ownership branding and status banners
+- Protected backup and reset flows from carrying or clearing license state
+- Added Supabase migration and edge function scaffold
+- Updated service worker caching for the new modules
 
-## License
+## Notes for Paid Deployment
 
-This project is intended as a practical business tool for taxi drivers and small transport operators.
+- Do not ship a production build with an empty `LICENSE_BACKEND`
+- Issue one `license_id` per customer
+- Treat backup files as data recovery only, not as license transfer tools
+- If a driver changes devices, clear or update `bound_install_id` in Supabase for that license before reactivating it

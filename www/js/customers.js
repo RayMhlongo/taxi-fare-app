@@ -35,6 +35,10 @@ window.TaxiFareApp.createCustomersModule = (app) => {
   }
 
   function openCreate() {
+    if (!app.guard("customer.create")) {
+      return;
+    }
+
     refs.form.reset();
     refs.modalTitle.textContent = "Add customer";
     refs.idInput.value = "";
@@ -45,6 +49,10 @@ window.TaxiFareApp.createCustomersModule = (app) => {
   }
 
   function openEdit(customerId) {
+    if (!app.guard("customer.edit")) {
+      return;
+    }
+
     const customer = app.store.peek().customers.find((candidate) => candidate.id === customerId);
     if (!customer) {
       app.ui.toast("That customer could not be found.", "warning");
@@ -70,6 +78,11 @@ window.TaxiFareApp.createCustomersModule = (app) => {
     event.preventDefault();
 
     try {
+      const isEditing = Boolean(refs.idInput.value);
+      if (!app.guard(isEditing ? "customer.edit" : "customer.create")) {
+        return;
+      }
+
       if (!refs.form.reportValidity()) {
         throw new Error("Please complete the required customer fields.");
       }
@@ -113,6 +126,10 @@ window.TaxiFareApp.createCustomersModule = (app) => {
   async function onDeleteFromModal() {
     const customerId = refs.idInput.value;
     if (!customerId) {
+      return;
+    }
+
+    if (!app.guard("customer.delete")) {
       return;
     }
 
@@ -189,6 +206,10 @@ window.TaxiFareApp.createCustomersModule = (app) => {
     }
 
     if (actionButton.dataset.customerAction === "toggle") {
+      if (!app.guard("customer.toggle")) {
+        return;
+      }
+
       app.store.update((draft) => {
         const target = draft.customers.find((item) => item.id === customerId);
         if (target) {
@@ -203,6 +224,10 @@ window.TaxiFareApp.createCustomersModule = (app) => {
     }
 
     if (actionButton.dataset.customerAction === "delete") {
+      if (!app.guard("customer.delete")) {
+        return;
+      }
+
       const shouldDelete = await app.ui.confirm({
         title: "Delete customer",
         message: "Delete this customer and unlink their trips?",
@@ -236,9 +261,13 @@ window.TaxiFareApp.createCustomersModule = (app) => {
   function render() {
     const customers = getFilteredCustomers();
     const trips = app.store.peek().trips;
+    const canEdit = app.featureState("customer.edit").allowed;
+    const canToggle = app.featureState("customer.toggle").allowed;
+    const canDelete = app.featureState("customer.delete").allowed;
 
     refs.empty.hidden = customers.length > 0;
     renderSummary(customers);
+    refs.openButton.disabled = !app.featureState("customer.create").allowed;
 
     refs.list.innerHTML = customers.map((customer) => {
       const tripCount = trips.filter((trip) => trip.customerId === customer.id).length;
@@ -261,9 +290,9 @@ window.TaxiFareApp.createCustomersModule = (app) => {
           ${customer.routeNotes ? `<p class="entry-note">${utils.escapeHtml(customer.routeNotes)}</p>` : ""}
           <div class="entry-actions">
             <button class="action-link" type="button" data-customer-action="invoice" data-customer-id="${utils.escapeHtml(customer.id)}">Invoice</button>
-            <button class="action-link" type="button" data-customer-action="edit" data-customer-id="${utils.escapeHtml(customer.id)}">Edit</button>
-            <button class="action-link" type="button" data-customer-action="toggle" data-customer-id="${utils.escapeHtml(customer.id)}">${customer.status === "active" ? "Set inactive" : "Activate"}</button>
-            <button class="action-link action-link-danger" type="button" data-customer-action="delete" data-customer-id="${utils.escapeHtml(customer.id)}">Delete</button>
+            <button class="action-link" type="button" data-customer-action="edit" data-customer-id="${utils.escapeHtml(customer.id)}" ${canEdit ? "" : "disabled"}>Edit</button>
+            <button class="action-link" type="button" data-customer-action="toggle" data-customer-id="${utils.escapeHtml(customer.id)}" ${canToggle ? "" : "disabled"}>${customer.status === "active" ? "Set inactive" : "Activate"}</button>
+            <button class="action-link action-link-danger" type="button" data-customer-action="delete" data-customer-id="${utils.escapeHtml(customer.id)}" ${canDelete ? "" : "disabled"}>Delete</button>
           </div>
         </article>
       `;

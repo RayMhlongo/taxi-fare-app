@@ -1,7 +1,7 @@
 window.TaxiFareApp = window.TaxiFareApp || {};
 
 window.TaxiFareApp.createSettingsModule = (app) => {
-  const { utils } = app;
+  const { utils, config } = app;
   const systemThemeQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
 
   const refs = {
@@ -20,6 +20,13 @@ window.TaxiFareApp.createSettingsModule = (app) => {
     invoicePrefix: document.getElementById("settingsInvoicePrefix"),
     paymentTerms: document.getElementById("settingsPaymentTerms"),
     invoiceNotes: document.getElementById("settingsInvoiceNotes"),
+    licenseId: document.getElementById("settingsLicenseId"),
+    installId: document.getElementById("settingsInstallId"),
+    copyInstallId: document.getElementById("copyInstallIdBtn"),
+    verifyLicense: document.getElementById("verifyLicenseBtn"),
+    licenseStatusPanel: document.getElementById("licenseStatusPanel"),
+    licenseHelperText: document.getElementById("licenseHelperText"),
+    aboutPanel: document.getElementById("aboutPanel"),
     exportBackup: document.getElementById("exportBackupBtn"),
     restoreBackup: document.getElementById("restoreBackupBtn"),
     clearData: document.getElementById("clearDataBtn"),
@@ -39,6 +46,8 @@ window.TaxiFareApp.createSettingsModule = (app) => {
     refs.restoreInput.addEventListener("change", onRestoreSelected);
     refs.clearData.addEventListener("click", onClearData);
     refs.themeToggle.addEventListener("click", toggleThemeQuick);
+    refs.copyInstallId.addEventListener("click", copyInstallId);
+    refs.verifyLicense.addEventListener("click", onVerifyLicense);
 
     if (systemThemeQuery?.addEventListener) {
       systemThemeQuery.addEventListener("change", () => {
@@ -92,6 +101,10 @@ window.TaxiFareApp.createSettingsModule = (app) => {
   }
 
   function openRestorePicker() {
+    if (!app.guard("backup.restore")) {
+      return;
+    }
+
     try {
       utils.openFilePicker(refs.restoreInput);
     } catch (error) {
@@ -131,25 +144,77 @@ window.TaxiFareApp.createSettingsModule = (app) => {
       <div>Expenses: <strong>${utils.escapeHtml(String(summary.expenses))}</strong></div>
       <div>Customers: <strong>${utils.escapeHtml(String(summary.customers))}</strong></div>
       <div>Invoices: <strong>${utils.escapeHtml(String(summary.invoices))}</strong></div>
+      <div>Install ID: <strong>${utils.escapeHtml(String(summary.installId || "--"))}</strong></div>
+      <div>License ID: <strong>${utils.escapeHtml(String(summary.licenseId || "Not set"))}</strong></div>
       <div>Estimated local data size: <strong>${utils.escapeHtml(utils.formatBytes(summary.estimatedBytes))}</strong></div>
     `;
   }
 
   function renderRoleNote(role) {
     const permissions = utils.ROLE_PERMISSIONS[role] || utils.ROLE_PERMISSIONS.owner;
+    const protection = app.protectionState();
     const lines = [
       `${utils.ROLE_LABELS[role]} mode is active.`,
       permissions.customers ? "Customer management is available." : "Customer management is hidden for this role.",
       permissions.invoices ? "Invoice tools are available." : "Invoice tools are hidden for this role.",
       permissions.destructiveData ? "Restore and clear-data actions are enabled." : "Restore and clear-data actions are protected.",
+      protection.readOnly ? "The app is currently in read-only mode." : "Write features are currently available.",
     ];
 
     refs.permissionNote.innerHTML = lines.map((line) => `<div>${utils.escapeHtml(line)}</div>`).join("");
     refs.roleBadge.textContent = utils.ROLE_LABELS[role] || "Owner";
   }
 
+  function renderLicensePanel() {
+    const protection = app.protectionState();
+    const license = protection.license || {};
+    const demo = protection.demo || {};
+    const helperLines = [];
+
+    if (protection.key.startsWith("demo")) {
+      helperLines.push(`Demo expires on ${utils.formatDate(demo.expiresAt)}.`);
+      helperLines.push(`Trips: ${demo.usage.trips}/${demo.limits.trips} | Expenses: ${demo.usage.expenses}/${demo.limits.expenses} | Customers: ${demo.usage.customers}/${demo.limits.customers}`);
+    } else {
+      helperLines.push(`Status: ${license.badgeLabel || protection.badgeLabel}`);
+      helperLines.push(`License ID: ${license.licenseId || "Not set"}`);
+      helperLines.push(`Install ID: ${protection.installId || "Preparing..."}`);
+      if (license.paidUntil) {
+        helperLines.push(`Paid until: ${utils.formatDate(license.paidUntil)}`);
+      }
+      if (license.graceUntil) {
+        helperLines.push(`Grace until: ${utils.formatDate(license.graceUntil)}`);
+      }
+      if (license.lastVerifiedAt) {
+        helperLines.push(`Last verified: ${utils.formatDateTime(license.lastVerifiedAt)}`);
+      }
+      if (license.verificationSource) {
+        helperLines.push(`Verification source: ${license.verificationSource}`);
+      }
+    }
+
+    refs.licenseStatusPanel.innerHTML = helperLines.map((line) => `<div>${utils.escapeHtml(line)}</div>`).join("");
+    refs.licenseHelperText.textContent = protection.key.startsWith("demo")
+      ? `Demo builds stay visibly branded and become read-only after ${config.DEMO_EXPIRES_DAYS} days.`
+      : `${config.SUPPORT_CONTACT} Offline access stays valid only while the recent verification window is still within tolerance.`;
+    refs.verifyLicense.disabled = protection.key === "demo-active" || protection.key === "demo-expired";
+  }
+
+  function renderAboutPanel() {
+    const protection = app.protectionState();
+    refs.aboutPanel.innerHTML = `
+      <div><strong>${utils.escapeHtml(utils.APP_NAME)}</strong></div>
+      <div>Powered by <strong>${utils.escapeHtml(utils.BRAND_NAME)}</strong></div>
+      <div>${utils.escapeHtml(config.APP_BRAND_WATERMARK)}</div>
+      <div>Support: ${utils.escapeHtml(config.SUPPORT_CONTACT)}</div>
+      <div>Build mode: ${utils.escapeHtml(protection.buildLabel || "Licensed App")}</div>
+      <div>Subscription enforcement: ${utils.escapeHtml(config.SUBSCRIPTION_ENABLED ? "Enabled" : "Disabled")}</div>
+    `;
+  }
+
   function render() {
     const settings = app.store.peek().settings;
+    const protection = app.protectionState();
+
     refs.driverName.value = settings.driverName || "";
     refs.businessName.value = settings.businessName || "";
     refs.driverPhone.value = settings.driverPhone || "";
@@ -164,20 +229,34 @@ window.TaxiFareApp.createSettingsModule = (app) => {
     refs.invoicePrefix.value = settings.invoicePrefix || "IR";
     refs.paymentTerms.value = settings.paymentTerms || "";
     refs.invoiceNotes.value = settings.invoiceNotes || "";
+    refs.licenseId.value = app.store.peek().licenseMeta.licenseId || "";
+    refs.installId.value = protection.installId || "";
 
     applyTheme(settings.theme);
     renderConnectionBadge();
     renderRoleNote(settings.role);
     renderStorageSummary();
+    renderLicensePanel();
+    renderAboutPanel();
+
+    refs.exportBackup.disabled = !app.featureState("backup.export").allowed;
+    refs.restoreBackup.disabled = !app.can("destructiveData") || !app.featureState("backup.restore").allowed;
+    refs.clearData.disabled = !app.can("destructiveData") || !app.featureState("data.clear").allowed;
   }
 
-  function onSubmit(event) {
+  async function onSubmit(event) {
     event.preventDefault();
 
     try {
+      if (!app.guard("settings.save")) {
+        return;
+      }
+
       if (!refs.form.reportValidity()) {
         throw new Error("Please review the settings form.");
       }
+
+      const previousLicenseId = app.store.peek().licenseMeta.licenseId;
 
       app.store.update((draft) => {
         draft.settings = {
@@ -197,8 +276,13 @@ window.TaxiFareApp.createSettingsModule = (app) => {
           paymentTerms: utils.stringFrom(refs.paymentTerms.value),
           invoiceNotes: utils.stringFrom(refs.invoiceNotes.value),
         };
+        draft.licenseMeta.licenseId = utils.stringFrom(refs.licenseId.value);
         return draft;
       });
+
+      if (utils.stringFrom(refs.licenseId.value) !== previousLicenseId && !config.DEMO_MODE) {
+        await app.modules.protection.refreshNow();
+      }
 
       app.ui.toast("Settings saved.", "success");
     } catch (error) {
@@ -207,6 +291,10 @@ window.TaxiFareApp.createSettingsModule = (app) => {
   }
 
   async function exportBackup() {
+    if (!app.guard("backup.export")) {
+      return;
+    }
+
     refs.exportBackup.disabled = true;
 
     try {
@@ -241,12 +329,16 @@ window.TaxiFareApp.createSettingsModule = (app) => {
       return;
     }
 
+    if (!app.guard("backup.restore")) {
+      return;
+    }
+
     try {
       const content = await utils.readFileAsText(file);
       const parsed = JSON.parse(content);
       const shouldContinue = await app.ui.confirm({
         title: "Restore backup",
-        message: "This will replace the current local database. Continue with restore?",
+        message: "This will replace the current trips, expenses, customers, and invoices on this device. License and install metadata stay protected here.",
         confirmLabel: "Restore data",
       });
 
@@ -283,15 +375,18 @@ window.TaxiFareApp.createSettingsModule = (app) => {
   }
 
   async function onClearData() {
-    const canDelete = utils.ROLE_PERMISSIONS[app.store.peek().settings.role]?.destructiveData;
-    if (!canDelete) {
+    if (!app.can("destructiveData")) {
       app.ui.toast("This role cannot clear all data. Switch to Owner mode first.", "warning");
+      return;
+    }
+
+    if (!app.guard("data.clear")) {
       return;
     }
 
     const shouldClear = await app.ui.confirm({
       title: "Clear all data",
-      message: "This removes trips, expenses, customers, invoices, and stored receipts from this device.",
+      message: "This removes trips, expenses, customers, invoices, and stored receipts from this device. The install and subscription identity will stay protected here.",
       confirmLabel: "Clear data",
     });
 
@@ -299,8 +394,34 @@ window.TaxiFareApp.createSettingsModule = (app) => {
       return;
     }
 
-    await app.store.resetAll();
-    app.ui.toast("All local data cleared.", "success");
+    await app.store.resetAll({ preserveProtection: true });
+    app.ui.toast("All local operating data cleared.", "success");
+  }
+
+  async function copyInstallId() {
+    try {
+      const copied = await utils.copyText(refs.installId.value);
+      if (!copied) {
+        throw new Error("Install ID could not be copied.");
+      }
+
+      app.ui.toast("Install ID copied.", "success");
+    } catch (error) {
+      app.ui.toast(error.message || "Install ID could not be copied.", "warning");
+    }
+  }
+
+  async function onVerifyLicense() {
+    refs.verifyLicense.disabled = true;
+
+    try {
+      await app.modules.protection.refreshNow();
+      app.ui.toast("Subscription verification completed.", "success");
+    } catch (error) {
+      app.ui.toast(error.message || "Subscription verification failed.", "warning");
+    } finally {
+      refs.verifyLicense.disabled = false;
+    }
   }
 
   return {

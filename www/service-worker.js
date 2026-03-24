@@ -1,4 +1,4 @@
-const CACHE_NAME = "insight-ride-v2.3.0";
+const CACHE_NAME = "insight-ride-v3.0.0";
 const OFFLINE_URL = "./index.html";
 const PRECACHE_URLS = [
   "./",
@@ -10,8 +10,12 @@ const PRECACHE_URLS = [
   "./vendor/xlsx.full.min.js",
   "./vendor/jspdf.umd.min.js",
   "./vendor/jspdf.plugin.autotable.min.js",
+  "./js/config.js",
   "./js/utils.js",
   "./js/storage.js",
+  "./js/demo.js",
+  "./js/license.js",
+  "./js/protection.js",
   "./js/trips.js",
   "./js/expenses.js",
   "./js/customers.js",

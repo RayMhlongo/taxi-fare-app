@@ -216,7 +216,7 @@ window.TaxiFareApp.createInvoicesModule = (app) => {
             <div class="invoice-line-item">
               <div>
                 <strong>${utils.escapeHtml(utils.formatDate(item.dateTime))}</strong>
-                <p class="invoice-line-copy">${utils.escapeHtml(item.route)} • ${utils.escapeHtml(item.description)}</p>
+                <p class="invoice-line-copy">${utils.escapeHtml(item.route)} | ${utils.escapeHtml(item.description)}</p>
               </div>
               <strong>${utils.escapeHtml(utils.formatCurrency(item.total, currency))}</strong>
             </div>
@@ -224,9 +224,9 @@ window.TaxiFareApp.createInvoicesModule = (app) => {
           ${draft.lineItems.length > 6 ? `<div class="invoice-line-copy">Plus ${utils.escapeHtml(String(draft.lineItems.length - 6))} more trip entries in the PDF.</div>` : ""}
         </div>
       `;
-      refs.saveButton.disabled = false;
-      refs.downloadButton.disabled = false;
-      refs.shareButton.disabled = false;
+      refs.saveButton.disabled = !app.featureState("invoice.save").allowed;
+      refs.downloadButton.disabled = !app.featureState("invoice.download").allowed;
+      refs.shareButton.disabled = !app.featureState("invoice.share").allowed;
     } catch (error) {
       refs.preview.innerHTML = `
         <div class="empty-state empty-state-compact">
@@ -308,9 +308,18 @@ window.TaxiFareApp.createInvoicesModule = (app) => {
       : mode === "share"
         ? refs.shareButton
         : refs.downloadButton;
+    const feature = mode === "save"
+      ? "invoice.save"
+      : mode === "share"
+        ? "invoice.share"
+        : "invoice.download";
 
     await withBusyButton(button, mode, async () => {
       try {
+        if (!app.guard(feature)) {
+          return;
+        }
+
         const invoice = buildInvoiceDraft();
         persistRecord(invoice);
 
@@ -350,6 +359,10 @@ window.TaxiFareApp.createInvoicesModule = (app) => {
     }
 
     const mode = actionButton.dataset.invoiceAction === "share" ? "share" : "download";
+    const feature = mode === "share" ? "invoice.share" : "invoice.download";
+    if (!app.guard(feature)) {
+      return;
+    }
 
     await withBusyButton(actionButton, mode, async () => {
       try {
@@ -387,6 +400,8 @@ window.TaxiFareApp.createInvoicesModule = (app) => {
       const rightTime = utils.toDate(right.issueDate || right.createdAt)?.getTime() || 0;
       return rightTime - leftTime;
     });
+    const canDownload = app.featureState("invoice.download").allowed;
+    const canShare = app.featureState("invoice.share").allowed;
 
     refs.archiveEmpty.hidden = invoices.length > 0;
     refs.archive.innerHTML = invoices.map((invoice) => `
@@ -404,8 +419,8 @@ window.TaxiFareApp.createInvoicesModule = (app) => {
         </div>
         <div class="entry-actions">
           <button class="action-link" type="button" data-invoice-action="load" data-invoice-id="${utils.escapeHtml(invoice.id)}">Load</button>
-          <button class="action-link" type="button" data-invoice-action="download" data-invoice-id="${utils.escapeHtml(invoice.id)}">Save PDF</button>
-          <button class="action-link" type="button" data-invoice-action="share" data-invoice-id="${utils.escapeHtml(invoice.id)}">Share PDF</button>
+          <button class="action-link" type="button" data-invoice-action="download" data-invoice-id="${utils.escapeHtml(invoice.id)}" ${canDownload ? "" : "disabled"}>Save PDF</button>
+          <button class="action-link" type="button" data-invoice-action="share" data-invoice-id="${utils.escapeHtml(invoice.id)}" ${canShare ? "" : "disabled"}>Share PDF</button>
         </div>
       </article>
     `).join("");
@@ -423,6 +438,9 @@ window.TaxiFareApp.createInvoicesModule = (app) => {
       refs.paymentTerms.value = settings.paymentTerms || "";
     }
 
+    refs.saveButton.disabled = !app.featureState("invoice.save").allowed;
+    refs.downloadButton.disabled = !app.featureState("invoice.download").allowed;
+    refs.shareButton.disabled = !app.featureState("invoice.share").allowed;
     renderPreview();
     renderArchive();
   }
@@ -486,6 +504,7 @@ window.TaxiFareApp.createInvoicesModule = (app) => {
     const pageCount = doc.internal.getNumberOfPages();
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
+    const licenseId = app.store.peek().licenseMeta.licenseId || "Unassigned";
 
     for (let index = 1; index <= pageCount; index += 1) {
       doc.setPage(index);
@@ -496,7 +515,7 @@ window.TaxiFareApp.createInvoicesModule = (app) => {
       doc.setFontSize(8);
       doc.setTextColor(110, 121, 137);
       doc.text(`${utils.APP_NAME} invoice | Page ${index} of ${pageCount}`, 40, pageHeight - 24);
-      doc.text(`Generated offline by ${utils.BRAND_NAME}`, pageWidth - 40, pageHeight - 24, { align: "right" });
+      doc.text(`${utils.BRAND_NAME} | License ${licenseId}`, pageWidth - 40, pageHeight - 24, { align: "right" });
     }
   }
 
@@ -720,7 +739,7 @@ window.TaxiFareApp.createInvoicesModule = (app) => {
     drawInvoiceFooter(doc, accent);
   }
 
-  async function exportInvoicePdf(invoice, shareInsteadOfDownload) {
+  async function exportInvoicePdf(invoice, mode) {
     const JsPdf = getPdfLibrary();
     const doc = new JsPdf({ unit: "pt", format: "a4" });
 
@@ -735,7 +754,7 @@ window.TaxiFareApp.createInvoicesModule = (app) => {
     return utils.exportFile({
       blob,
       fileName,
-      mode: shareInsteadOfDownload,
+      mode,
       title: invoice.invoiceNumber,
       text: `Invoice ${invoice.invoiceNumber}`,
       mimeType: "application/pdf",

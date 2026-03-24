@@ -1,7 +1,13 @@
 window.TaxiFareApp = window.TaxiFareApp || {};
 
 document.addEventListener("DOMContentLoaded", () => {
-  const { utils, storage } = window.TaxiFareApp;
+  bootstrap().catch((error) => {
+    console.error(error);
+  });
+});
+
+async function bootstrap() {
+  const { utils, storage, config } = window.TaxiFareApp;
 
   const store = storage.createStore();
   const uiState = {
@@ -24,6 +30,16 @@ document.addEventListener("DOMContentLoaded", () => {
     confirmAccept: document.getElementById("confirmAcceptBtn"),
     confirmCancel: document.getElementById("confirmCancelBtn"),
     toast: document.getElementById("toast"),
+    licenseBadge: document.getElementById("licenseBadge"),
+    buildBadge: document.getElementById("buildBadge"),
+    statusBanner: document.getElementById("statusBanner"),
+    statusBannerTitle: document.getElementById("statusBannerTitle"),
+    statusBannerMessage: document.getElementById("statusBannerMessage"),
+    statusBannerMeta: document.getElementById("statusBannerMeta"),
+    statusBannerActionBtn: document.getElementById("statusBannerActionBtn"),
+    ownershipLabel: document.getElementById("ownershipLabel"),
+    ownershipCopy: document.getElementById("ownershipCopy"),
+    installIdChip: document.getElementById("installIdChip"),
     dashboardRangeChips: document.getElementById("dashboardRangeChips"),
     dashboardTripCount: document.getElementById("dashboardTripCount"),
     dashboardIncome: document.getElementById("dashboardIncome"),
@@ -46,6 +62,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const app = {
+    config,
     currency: () => store.peek().settings.currency || "ZAR",
     dom,
     modules: {},
@@ -122,8 +139,27 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  function protectionState() {
+    return app.modules.protection?.getState() || {
+      key: "booting",
+      readOnly: false,
+      premium: {},
+    };
+  }
+
+  app.protectionState = protectionState;
+  app.featureState = (feature, context = {}) => app.modules.protection.canUse(feature, context);
+  app.guard = (feature, context = {}) => app.modules.protection.guard(feature, context);
+
   function openScreen(screenName) {
-    if ((screenName === "customers" && !can("customers")) || (screenName === "invoices" && !can("invoices")) || (screenName === "reports" && !can("reports"))) {
+    if (screenName === "invoices" && !config.ENABLE_INVOICES) {
+      toast("Invoice tools are disabled in configuration.", "warning");
+      return;
+    }
+
+    if ((screenName === "customers" && !can("customers"))
+      || (screenName === "invoices" && !can("invoices"))
+      || (screenName === "reports" && !can("reports"))) {
       toast("This role cannot open that section.", "warning");
       return;
     }
@@ -172,6 +208,45 @@ document.addEventListener("DOMContentLoaded", () => {
       select.value = "all";
     } else if (options.allowBlank) {
       select.value = "";
+    }
+  }
+
+  function renderProtectionChrome() {
+    const state = protectionState();
+    const paidUntil = utils.toDate(state.license?.paidUntil);
+    const daysUntilRenewal = paidUntil
+      ? Math.ceil((utils.endOfDay(paidUntil).getTime() - Date.now()) / (24 * 60 * 60 * 1000))
+      : null;
+    const showBanner = state.key !== "active" || (typeof daysUntilRenewal === "number" && daysUntilRenewal <= 5);
+
+    dom.licenseBadge.textContent = state.badgeLabel || "Verification needed";
+    dom.buildBadge.textContent = state.buildLabel || "Licensed App";
+    dom.ownershipLabel.textContent = state.ownerLabel || config.APP_BRAND_WATERMARK;
+    dom.ownershipCopy.textContent = state.ownerCopy || `Powered by ${config.APP_OWNER_NAME}`;
+    dom.installIdChip.textContent = state.installChip || "Install ----";
+    document.body.dataset.readOnly = state.readOnly ? "true" : "false";
+
+    if (!showBanner) {
+      dom.statusBanner.className = "status-banner hidden";
+      dom.statusBannerActionBtn.classList.add("hidden");
+      return;
+    }
+
+    dom.statusBanner.className = `status-banner status-banner-${state.bannerTone || "info"}`;
+    dom.statusBannerTitle.textContent = state.bannerTitle || "Subscription status";
+    dom.statusBannerMessage.textContent = state.key === "active" && typeof daysUntilRenewal === "number" && daysUntilRenewal <= 5
+      ? `Your subscription renews soon on ${utils.formatDate(state.license.paidUntil)}.`
+      : state.bannerMessage || "Status information is unavailable.";
+    dom.statusBannerMeta.textContent = state.bannerMeta || "Ready";
+
+    if (state.bannerAction === "verify") {
+      dom.statusBannerActionBtn.textContent = "Verify now";
+      dom.statusBannerActionBtn.classList.remove("hidden");
+    } else if (state.bannerAction === "settings") {
+      dom.statusBannerActionBtn.textContent = "Open settings";
+      dom.statusBannerActionBtn.classList.remove("hidden");
+    } else {
+      dom.statusBannerActionBtn.classList.add("hidden");
     }
   }
 
@@ -292,19 +367,25 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function syncPermissions() {
-    const role = store.peek().settings.role;
+    const protection = protectionState();
+
     dom.appNav.querySelectorAll(".nav-btn").forEach((button) => {
       const target = button.dataset.screenTarget;
       const allowed = (target !== "customers" || can("customers"))
-        && (target !== "invoices" || can("invoices"))
+        && (target !== "invoices" || (can("invoices") && config.ENABLE_INVOICES))
         && (target !== "reports" || can("reports"));
       button.hidden = !allowed;
     });
 
+    dom.dashboardAddTripBtn.disabled = !app.featureState("trip.create").allowed;
+    dom.dashboardAddExpenseBtn.disabled = !app.featureState("expense.create").allowed;
     dom.dashboardAddCustomerBtn.hidden = !can("customers");
-    dom.dashboardOpenInvoicesBtn.hidden = !can("invoices");
+    dom.dashboardAddCustomerBtn.disabled = !app.featureState("customer.create").allowed;
+    dom.dashboardOpenInvoicesBtn.hidden = !can("invoices") || !config.ENABLE_INVOICES;
 
-    if ((uiState.activeScreen === "customers" && !can("customers")) || (uiState.activeScreen === "invoices" && !can("invoices")) || (uiState.activeScreen === "reports" && !can("reports"))) {
+    if ((uiState.activeScreen === "customers" && !can("customers"))
+      || (uiState.activeScreen === "invoices" && (!can("invoices") || !config.ENABLE_INVOICES))
+      || (uiState.activeScreen === "reports" && !can("reports"))) {
       openScreen("dashboard");
     }
 
@@ -312,11 +393,13 @@ document.addEventListener("DOMContentLoaded", () => {
       chip.classList.toggle("active", chip.dataset.dashboardRange === uiState.dashboardRange);
     });
 
-    document.getElementById("clearDataBtn").disabled = !can("destructiveData");
-    document.getElementById("restoreBackupBtn").disabled = !can("destructiveData");
+    document.getElementById("clearDataBtn").disabled = !can("destructiveData") || !app.featureState("data.clear").allowed;
+    document.getElementById("restoreBackupBtn").disabled = !can("destructiveData") || !app.featureState("backup.restore").allowed;
+    document.body.dataset.readOnly = protection.readOnly ? "true" : "false";
   }
 
   function renderAll() {
+    renderProtectionChrome();
     app.modules.settings.render();
     syncPermissions();
     renderDashboard();
@@ -346,16 +429,35 @@ document.addEventListener("DOMContentLoaded", () => {
       syncPermissions();
     });
 
-    dom.dashboardAddTripBtn.addEventListener("click", () => app.modules.trips.openCreate());
-    dom.dashboardAddExpenseBtn.addEventListener("click", () => app.modules.expenses.openCreate());
+    dom.dashboardAddTripBtn.addEventListener("click", () => {
+      if (!app.guard("trip.create")) {
+        return;
+      }
+
+      app.modules.trips.openCreate();
+    });
+
+    dom.dashboardAddExpenseBtn.addEventListener("click", () => {
+      if (!app.guard("expense.create")) {
+        return;
+      }
+
+      app.modules.expenses.openCreate();
+    });
+
     dom.dashboardAddCustomerBtn.addEventListener("click", () => {
       if (!can("customers")) {
         toast("Owner or Manager mode is required for customers.", "warning");
         return;
       }
 
+      if (!app.guard("customer.create")) {
+        return;
+      }
+
       app.modules.customers.openCreate();
     });
+
     dom.dashboardOpenInvoicesBtn.addEventListener("click", () => {
       if (!can("invoices")) {
         toast("Owner or Manager mode is required for invoices.", "warning");
@@ -363,6 +465,27 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       openScreen("invoices");
+    });
+
+    dom.statusBannerActionBtn.addEventListener("click", async () => {
+      const state = protectionState();
+      if (state.bannerAction === "settings") {
+        openScreen("settings");
+        return;
+      }
+
+      if (state.bannerAction === "verify") {
+        dom.statusBannerActionBtn.disabled = true;
+        try {
+          await app.modules.protection.refreshNow();
+          renderAll();
+          toast("Subscription check completed.", "success");
+        } catch (error) {
+          toast(error.message || "Subscription verification failed.", "warning");
+        } finally {
+          dom.statusBannerActionBtn.disabled = false;
+        }
+      }
     });
 
     dom.modalShell.addEventListener("click", (event) => {
@@ -391,6 +514,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  app.modules.protection = window.TaxiFareApp.createProtectionModule(app);
   app.modules.trips = window.TaxiFareApp.createTripsModule(app);
   app.modules.expenses = window.TaxiFareApp.createExpensesModule(app);
   app.modules.customers = window.TaxiFareApp.createCustomersModule(app);
@@ -407,6 +531,13 @@ document.addEventListener("DOMContentLoaded", () => {
   app.modules.invoices.init();
 
   store.subscribe(renderAll);
+
+  try {
+    await app.modules.protection.init();
+  } catch (error) {
+    toast(error.message || "Subscription status could not be prepared.", "warning");
+  }
+
   renderAll();
   registerServiceWorker();
-});
+}

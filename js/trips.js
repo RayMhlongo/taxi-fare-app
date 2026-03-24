@@ -55,6 +55,10 @@ window.TaxiFareApp.createTripsModule = (app) => {
   }
 
   function openCreate(options = {}) {
+    if (!app.guard("trip.create")) {
+      return;
+    }
+
     refreshCustomerOptions();
     refs.form.reset();
     refs.modalTitle.textContent = "Log trip";
@@ -69,6 +73,10 @@ window.TaxiFareApp.createTripsModule = (app) => {
   }
 
   function openEdit(tripId) {
+    if (!app.guard("trip.edit")) {
+      return;
+    }
+
     const trip = app.store.peek().trips.find((candidate) => candidate.id === tripId);
     if (!trip) {
       app.ui.toast("That trip could not be found.", "warning");
@@ -153,6 +161,11 @@ window.TaxiFareApp.createTripsModule = (app) => {
     event.preventDefault();
 
     try {
+      const isEditing = Boolean(refs.idInput.value);
+      if (!app.guard(isEditing ? "trip.edit" : "trip.create")) {
+        return;
+      }
+
       const nextTrip = buildTripFromForm();
       const existing = app.store.peek().trips.find((trip) => trip.id === nextTrip.id);
       const now = utils.nowISOString();
@@ -188,6 +201,10 @@ window.TaxiFareApp.createTripsModule = (app) => {
       return;
     }
 
+    if (!app.guard("trip.delete")) {
+      return;
+    }
+
     const shouldDelete = await app.ui.confirm({
       title: "Delete trip",
       message: "Delete this trip entry? Saved invoices keep their own snapshot, but this trip will disappear from reports.",
@@ -216,6 +233,10 @@ window.TaxiFareApp.createTripsModule = (app) => {
     }
 
     if (actionButton.dataset.tripAction === "delete") {
+      if (!app.guard("trip.delete")) {
+        return;
+      }
+
       const shouldDelete = await app.ui.confirm({
         title: "Delete trip",
         message: "This trip will be removed from your dashboard and reports. Continue?",
@@ -282,9 +303,12 @@ window.TaxiFareApp.createTripsModule = (app) => {
     const trips = getFilteredTrips();
     const currency = app.currency();
     const customers = app.store.peek().customers;
+    const canEdit = app.featureState("trip.edit", { silent: true }).allowed;
+    const canDelete = app.featureState("trip.delete", { silent: true }).allowed;
 
     renderSummary(trips);
     refs.empty.hidden = trips.length > 0;
+    refs.openButton.disabled = !app.featureState("trip.create").allowed;
 
     refs.list.innerHTML = trips.map((trip) => {
       const customerName = trip.customerId ? utils.customerNameFromState(customers, trip.customerId) : "Walk-in";
@@ -308,8 +332,8 @@ window.TaxiFareApp.createTripsModule = (app) => {
           <p class="entry-meta">Passenger: ${utils.escapeHtml(trip.passengerName || "Not recorded")}</p>
           ${trip.notes ? `<p class="entry-note">${utils.escapeHtml(trip.notes)}</p>` : ""}
           <div class="entry-actions">
-            <button class="action-link" type="button" data-trip-action="edit" data-trip-id="${utils.escapeHtml(trip.id)}">Edit</button>
-            <button class="action-link action-link-danger" type="button" data-trip-action="delete" data-trip-id="${utils.escapeHtml(trip.id)}">Delete</button>
+            <button class="action-link" type="button" data-trip-action="edit" data-trip-id="${utils.escapeHtml(trip.id)}" ${canEdit ? "" : "disabled"}>Edit</button>
+            <button class="action-link action-link-danger" type="button" data-trip-action="delete" data-trip-id="${utils.escapeHtml(trip.id)}" ${canDelete ? "" : "disabled"}>Delete</button>
           </div>
         </article>
       `;

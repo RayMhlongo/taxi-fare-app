@@ -215,6 +215,7 @@ window.TaxiFareApp.createReportsModule = (app) => {
     renderTopStats(reportState);
     renderMetrics(reportState);
     renderBreakdowns(reportState);
+    refs.exportButton.disabled = !app.featureState("report.export").allowed;
   }
 
   function buildWorkbookRows(reportState) {
@@ -223,6 +224,10 @@ window.TaxiFareApp.createReportsModule = (app) => {
 
     return {
       summary: [
+        { Metric: "App", Value: utils.APP_NAME },
+        { Metric: "Powered by", Value: utils.BRAND_NAME },
+        { Metric: "License ID", Value: app.store.peek().licenseMeta.licenseId || "Not set" },
+        { Metric: "Exported At", Value: utils.nowISOString() },
         { Metric: "From", Value: reportState.from },
         { Metric: "To", Value: reportState.to },
         { Metric: "Customer", Value: customer?.name || "All customers" },
@@ -276,6 +281,10 @@ window.TaxiFareApp.createReportsModule = (app) => {
   }
 
   async function exportWorkbook() {
+    if (!app.guard("report.export")) {
+      return;
+    }
+
     refs.exportButton.disabled = true;
 
     try {

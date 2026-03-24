@@ -618,10 +618,112 @@ canvas {
   border: 1px solid rgba(0, 255, 204, 0.22);
 }
 
+.license-pill {
+  background: rgba(255, 191, 107, 0.12);
+  border: 1px solid rgba(255, 191, 107, 0.24);
+}
+
+.build-pill {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
 .subtle-pill {
   background: var(--surface-soft);
   border: 1px solid var(--border);
   color: var(--text-muted);
+}
+
+.status-banner {
+  align-items: center;
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 12px 14px;
+  position: relative;
+  z-index: 1;
+}
+
+.status-banner strong {
+  color: #ffffff;
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.98rem;
+  margin-bottom: 4px;
+}
+
+.status-banner p {
+  color: rgba(225, 240, 255, 0.92);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.status-banner-success {
+  background: linear-gradient(135deg, rgba(12, 94, 78, 0.94), rgba(6, 55, 49, 0.96));
+}
+
+.status-banner-warning {
+  background: linear-gradient(135deg, rgba(135, 87, 20, 0.96), rgba(77, 48, 8, 0.98));
+}
+
+.status-banner-danger {
+  background: linear-gradient(135deg, rgba(126, 36, 47, 0.98), rgba(74, 15, 24, 0.98));
+}
+
+.status-banner-info {
+  background: linear-gradient(135deg, rgba(17, 83, 102, 0.96), rgba(7, 46, 59, 0.98));
+}
+
+.status-banner-side {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.status-banner-chip,
+.watermark-chip {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  color: #f6fbff;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  min-height: 34px;
+  padding: 8px 12px;
+  text-transform: uppercase;
+}
+
+.ownership-strip {
+  align-items: center;
+  background: color-mix(in srgb, var(--surface) 84%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  margin: 0 auto 16px;
+  max-width: 1120px;
+  padding: 14px 16px;
+}
+
+.ownership-strip strong {
+  color: var(--text);
+  display: block;
+  font-family: var(--font-display);
+  font-size: 0.94rem;
+  margin-bottom: 4px;
+}
+
+.ownership-strip p {
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  margin: 0;
 }
 
 .quick-chip-row {
@@ -1013,6 +1115,8 @@ body.modal-open {
 
 @media (max-width: 759px) {
   .app-header,
+  .status-banner,
+  .ownership-strip,
   .section-head,
   .card-header,
   .entry-top,

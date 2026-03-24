@@ -6,7 +6,7 @@ window.TaxiFareApp.storage = (() => {
   const STORAGE_KEY = "taxiFareV2";
   const LEGACY_STORAGE_KEY = "taxiFareV1";
   const LEGACY_THEME_KEY = "taxiFare_dark";
-  const SCHEMA_VERSION = 2;
+  const SCHEMA_VERSION = 3;
   const RECEIPT_DB_NAME = "taxiFareAssets";
   const RECEIPT_STORE_NAME = "receipts";
 
@@ -29,6 +29,47 @@ window.TaxiFareApp.storage = (() => {
 
   let receiptDbPromise = null;
 
+  function defaultAppMeta(now = utils.nowISOString()) {
+    return {
+      buildChannel: window.TaxiFareApp.config?.DEMO_MODE ? "demo" : "paid",
+      demoStartedAt: "",
+      demoExpiresAt: "",
+      createdAt: now,
+      updatedAt: now,
+    };
+  }
+
+  function defaultInstallMeta(now = utils.nowISOString()) {
+    return {
+      installId: "",
+      deviceFingerprint: "",
+      boundLicenseId: "",
+      createdAt: now,
+      lastSeenAt: now,
+    };
+  }
+
+  function defaultLicenseMeta(now = utils.nowISOString()) {
+    return {
+      licenseId: "",
+      driverName: "",
+      businessName: "",
+      status: "unverified",
+      paidUntil: "",
+      graceUntil: "",
+      lastVerifiedAt: "",
+      lastAttemptAt: now,
+      lastMessage: "",
+      lastError: "",
+      notes: "",
+      boundInstallId: "",
+      deviceFingerprint: "",
+      accessMode: "",
+      verificationSource: "",
+      deviceMismatch: false,
+    };
+  }
+
   function defaultState() {
     const now = utils.nowISOString();
 
@@ -39,6 +80,9 @@ window.TaxiFareApp.storage = (() => {
         updatedAt: now,
         migratedFrom: null,
       },
+      appMeta: defaultAppMeta(now),
+      installMeta: defaultInstallMeta(now),
+      licenseMeta: defaultLicenseMeta(now),
       settings: { ...SETTINGS_DEFAULTS },
       trips: [],
       expenses: [],
@@ -70,6 +114,53 @@ window.TaxiFareApp.storage = (() => {
       invoicePrefix: utils.stringFrom(raw.invoicePrefix, "IR").slice(0, 10) || "IR",
       paymentTerms: utils.stringFrom(raw.paymentTerms, SETTINGS_DEFAULTS.paymentTerms),
       invoiceNotes: utils.stringFrom(raw.invoiceNotes),
+    };
+  }
+
+  function sanitizeAppMeta(raw = {}, now = utils.nowISOString()) {
+    const defaults = defaultAppMeta(now);
+    return {
+      ...defaults,
+      buildChannel: ["paid", "demo"].includes(raw.buildChannel) ? raw.buildChannel : defaults.buildChannel,
+      demoStartedAt: utils.stringFrom(raw.demoStartedAt),
+      demoExpiresAt: utils.stringFrom(raw.demoExpiresAt),
+      createdAt: utils.stringFrom(raw.createdAt, defaults.createdAt),
+      updatedAt: now,
+    };
+  }
+
+  function sanitizeInstallMeta(raw = {}, now = utils.nowISOString()) {
+    const defaults = defaultInstallMeta(now);
+    return {
+      ...defaults,
+      installId: utils.stringFrom(raw.installId),
+      deviceFingerprint: utils.stringFrom(raw.deviceFingerprint),
+      boundLicenseId: utils.stringFrom(raw.boundLicenseId),
+      createdAt: utils.stringFrom(raw.createdAt, defaults.createdAt),
+      lastSeenAt: utils.stringFrom(raw.lastSeenAt, now),
+    };
+  }
+
+  function sanitizeLicenseMeta(raw = {}, now = utils.nowISOString()) {
+    const defaults = defaultLicenseMeta(now);
+    return {
+      ...defaults,
+      licenseId: utils.stringFrom(raw.licenseId),
+      driverName: utils.stringFrom(raw.driverName),
+      businessName: utils.stringFrom(raw.businessName),
+      status: utils.stringFrom(raw.status, defaults.status),
+      paidUntil: utils.stringFrom(raw.paidUntil),
+      graceUntil: utils.stringFrom(raw.graceUntil),
+      lastVerifiedAt: utils.stringFrom(raw.lastVerifiedAt),
+      lastAttemptAt: utils.stringFrom(raw.lastAttemptAt, defaults.lastAttemptAt),
+      lastMessage: utils.stringFrom(raw.lastMessage),
+      lastError: utils.stringFrom(raw.lastError),
+      notes: utils.stringFrom(raw.notes),
+      boundInstallId: utils.stringFrom(raw.boundInstallId),
+      deviceFingerprint: utils.stringFrom(raw.deviceFingerprint),
+      accessMode: utils.stringFrom(raw.accessMode),
+      verificationSource: utils.stringFrom(raw.verificationSource),
+      deviceMismatch: Boolean(raw.deviceMismatch),
     };
   }
 
@@ -246,14 +337,18 @@ window.TaxiFareApp.storage = (() => {
 
   function sanitizeState(raw = {}, options = {}) {
     const base = defaultState();
+    const now = utils.nowISOString();
     const state = {
       meta: {
         ...base.meta,
         schemaVersion: SCHEMA_VERSION,
         createdAt: utils.stringFrom(raw.meta?.createdAt, base.meta.createdAt),
-        updatedAt: utils.nowISOString(),
+        updatedAt: now,
         migratedFrom: raw.meta?.migratedFrom || options.migratedFrom || null,
       },
+      appMeta: sanitizeAppMeta(raw.appMeta || {}, now),
+      installMeta: sanitizeInstallMeta(raw.installMeta || {}, now),
+      licenseMeta: sanitizeLicenseMeta(raw.licenseMeta || {}, now),
       settings: sanitizeSettings(raw.settings || {}, options.legacyTheme),
       trips: Array.isArray(raw.trips) ? raw.trips.map(sanitizeTrip) : [],
       expenses: Array.isArray(raw.expenses) ? raw.expenses.map(sanitizeExpense) : [],
@@ -386,7 +481,14 @@ window.TaxiFareApp.storage = (() => {
         exportedAt: utils.nowISOString(),
         schemaVersion: SCHEMA_VERSION,
       },
-      data: utils.clone(state),
+      data: utils.clone({
+        meta: state.meta,
+        settings: state.settings,
+        trips: state.trips,
+        expenses: state.expenses,
+        customers: state.customers,
+        invoices: state.invoices,
+      }),
       receipts: receiptEntries.filter(Boolean),
     };
   }
@@ -449,6 +551,11 @@ window.TaxiFareApp.storage = (() => {
     async function restoreBackup(payload, options = {}) {
       const normalized = normalizeBackupPayload(payload);
       const safetyBackup = options.createSafetyBackup ? await buildBackupPayload(state) : null;
+      const preservedProtection = {
+        appMeta: utils.clone(state.appMeta),
+        installMeta: utils.clone(state.installMeta),
+        licenseMeta: utils.clone(state.licenseMeta),
+      };
       await clearReceiptAssets();
 
       for (const receipt of normalized.receipts) {
@@ -468,7 +575,12 @@ window.TaxiFareApp.storage = (() => {
         });
       }
 
-      replace(normalized.data);
+      replace({
+        ...normalized.data,
+        appMeta: preservedProtection.appMeta,
+        installMeta: preservedProtection.installMeta,
+        licenseMeta: preservedProtection.licenseMeta,
+      });
 
       return {
         safetyBackup,
@@ -481,9 +593,25 @@ window.TaxiFareApp.storage = (() => {
       };
     }
 
-    async function resetAll() {
+    async function resetAll(options = {}) {
+      const preserveProtection = options.preserveProtection !== false;
+      const preservedProtection = preserveProtection
+        ? {
+          appMeta: utils.clone(state.appMeta),
+          installMeta: utils.clone(state.installMeta),
+          licenseMeta: utils.clone(state.licenseMeta),
+        }
+        : null;
+
       await clearReceiptAssets();
-      replace(defaultState());
+
+      const nextState = defaultState();
+      replace(preserveProtection ? {
+        ...nextState,
+        appMeta: preservedProtection.appMeta,
+        installMeta: preservedProtection.installMeta,
+        licenseMeta: preservedProtection.licenseMeta,
+      } : nextState);
     }
 
     function getStorageSummary() {
@@ -494,6 +622,8 @@ window.TaxiFareApp.storage = (() => {
         expenses: state.expenses.length,
         customers: state.customers.length,
         invoices: state.invoices.length,
+        licenseId: state.licenseMeta.licenseId,
+        installId: state.installMeta.installId,
         estimatedBytes: serialized.length * 2,
       };
     }

@@ -52,6 +52,10 @@ window.TaxiFareApp.createExpensesModule = (app) => {
   }
 
   function openCreate() {
+    if (!app.guard("expense.create")) {
+      return;
+    }
+
     refs.form.reset();
     refs.modalTitle.textContent = "Add expense";
     refs.idInput.value = "";
@@ -65,6 +69,10 @@ window.TaxiFareApp.createExpensesModule = (app) => {
   }
 
   function openEdit(expenseId) {
+    if (!app.guard("expense.edit")) {
+      return;
+    }
+
     const expense = app.store.peek().expenses.find((candidate) => candidate.id === expenseId);
     if (!expense) {
       app.ui.toast("That expense could not be found.", "warning");
@@ -108,6 +116,11 @@ window.TaxiFareApp.createExpensesModule = (app) => {
     event.preventDefault();
 
     try {
+      const isEditing = Boolean(refs.idInput.value);
+      if (!app.guard(isEditing ? "expense.edit" : "expense.create")) {
+        return;
+      }
+
       if (!refs.form.reportValidity()) {
         throw new Error("Please complete the required expense fields.");
       }
@@ -183,6 +196,10 @@ window.TaxiFareApp.createExpensesModule = (app) => {
       return;
     }
 
+    if (!app.guard("expense.delete")) {
+      return;
+    }
+
     const shouldDelete = await app.ui.confirm({
       title: "Delete expense",
       message: "Delete this expense and its stored receipt?",
@@ -234,6 +251,10 @@ window.TaxiFareApp.createExpensesModule = (app) => {
     }
 
     if (actionButton.dataset.expenseAction === "delete") {
+      if (!app.guard("expense.delete")) {
+        return;
+      }
+
       const shouldDelete = await app.ui.confirm({
         title: "Delete expense",
         message: "This expense will be removed from reports and profit calculations. Continue?",
@@ -317,9 +338,12 @@ window.TaxiFareApp.createExpensesModule = (app) => {
     populateCategories();
     const expenses = getFilteredExpenses();
     const currency = app.currency();
+    const canEdit = app.featureState("expense.edit").allowed;
+    const canDelete = app.featureState("expense.delete").allowed;
 
     refs.empty.hidden = expenses.length > 0;
     renderSummary(expenses);
+    refs.openButton.disabled = !app.featureState("expense.create").allowed;
 
     refs.list.innerHTML = expenses.map((expense) => {
       const receiptBadge = expense.receipt?.assetId
@@ -342,8 +366,8 @@ window.TaxiFareApp.createExpensesModule = (app) => {
           <p class="entry-meta">${utils.escapeHtml(expense.description)}</p>
           <div class="entry-actions">
             ${expense.receipt?.assetId ? `<button class="action-link" type="button" data-expense-action="receipt" data-expense-id="${utils.escapeHtml(expense.id)}">View receipt</button>` : ""}
-            <button class="action-link" type="button" data-expense-action="edit" data-expense-id="${utils.escapeHtml(expense.id)}">Edit</button>
-            <button class="action-link action-link-danger" type="button" data-expense-action="delete" data-expense-id="${utils.escapeHtml(expense.id)}">Delete</button>
+            <button class="action-link" type="button" data-expense-action="edit" data-expense-id="${utils.escapeHtml(expense.id)}" ${canEdit ? "" : "disabled"}>Edit</button>
+            <button class="action-link action-link-danger" type="button" data-expense-action="delete" data-expense-id="${utils.escapeHtml(expense.id)}" ${canDelete ? "" : "disabled"}>Delete</button>
           </div>
         </article>
       `;
