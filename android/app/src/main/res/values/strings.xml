@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">InsightRide</string>
-    <string name="title_activity_main">InsightRide</string>
+    <string name="app_name">Agape Kids</string>
+    <string name="title_activity_main">Agape Kids</string>
     <string name="package_name">com.taxifare.driver</string>
     <string name="custom_url_scheme">com.taxifare.driver</string>
 </resources>

@@ -1,371 +1,347 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <title>InsightRide | Driver Operations</title>
-  <meta name="description" content="InsightRide is an offline-first driver operations app powered by Data Insights by Ray for South African taxi drivers.">
-  <meta name="theme-color" content="#0a1628">
+  <title>Agape Kids | Agape Christian Centre</title>
+  <meta name="description" content="Agape Kids is a warm, mobile-first children's church management app for Agape Christian Centre in Louis Trichardt.">
+  <meta name="theme-color" content="#234fb8">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="InsightRide">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Agape Kids">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/icon-192x192.png">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <div class="app-loader" id="appLoader" aria-live="polite">
+    <div class="loader-card">
+      <img id="loaderLogo" class="loader-logo" src="icons/agape-logo.svg" alt="Agape Christian Centre logo">
+      <p class="loader-kicker">Agape Christian Centre</p>
+      <h1 class="loader-title">Agape Kids</h1>
+      <p class="loader-copy">Preparing today's check-in, classes, follow-up, and reports.</p>
+      <div class="loader-bar" aria-hidden="true">
+        <span></span>
+      </div>
+    </div>
+  </div>
+
   <div class="app-shell">
     <header class="app-header">
       <div class="brand">
-        <div class="brand-mark" aria-hidden="true">
-          <svg class="brand-mark-svg" viewBox="0 0 72 72" fill="none">
-            <defs>
-              <linearGradient id="brandGradientBars" x1="12" y1="16" x2="52" y2="56" gradientUnits="userSpaceOnUse">
-                <stop offset="0%" stop-color="#00d4ff"></stop>
-                <stop offset="100%" stop-color="#00ffcc"></stop>
-              </linearGradient>
-            </defs>
-            <rect x="12" y="38" width="10" height="18" rx="2.5" fill="url(#brandGradientBars)" fill-opacity="0.85"></rect>
-            <rect x="26" y="26" width="10" height="30" rx="2.5" fill="url(#brandGradientBars)" fill-opacity="0.92"></rect>
-            <rect x="40" y="14" width="10" height="42" rx="2.5" fill="url(#brandGradientBars)"></rect>
-            <path d="M10 56H54" stroke="#00d4ff" stroke-width="3.2" stroke-linecap="round"></path>
-            <path d="M52 47.5L57 44.5L63 47.5V51H52V47.5Z" stroke="#051121" stroke-width="2.4" stroke-linejoin="round"></path>
-            <circle cx="55.3" cy="51" r="2.1" fill="#051121"></circle>
-            <circle cx="60.8" cy="51" r="2.1" fill="#051121"></circle>
-          </svg>
-        </div>
-        <div>
-          <p class="brand-kicker">Data Insights by Ray</p>
-          <h1 class="brand-title">InsightRide</h1>
-          <p class="brand-subtitle">Smart fares. Smarter rides.</p>
+        <img id="brandLogo" class="brand-logo" src="icons/agape-logo.svg" alt="Agape Christian Centre logo">
+        <div class="brand-copy">
+          <p class="brand-kicker" id="brandKicker">Agape Christian Centre  |  Louis Trichardt</p>
+          <h1 class="brand-title">Agape Kids</h1>
+          <p class="brand-subtitle" id="brandSubtitle">Warm, safe children's church care for every Sunday service.</p>
         </div>
       </div>
       <div class="header-meta">
-        <span class="pill role-pill" id="roleBadge">Owner</span>
+        <span class="pill role-pill" id="roleBadge">Admin</span>
         <span class="pill connection-pill" id="connectionBadge">Offline ready</span>
-        <button class="icon-btn" id="themeToggleBtn" type="button" aria-label="Toggle theme">Theme</button>
+        <button class="icon-btn" id="installAppBtn" type="button" hidden data-copy="button_install">Install</button>
+        <button class="icon-btn" id="themeToggleBtn" type="button" data-copy="button_theme">Theme</button>
       </div>
     </header>
 
     <nav class="app-nav" id="appNav" aria-label="Primary">
-      <button class="nav-btn active" type="button" data-screen-target="dashboard">Dashboard</button>
-      <button class="nav-btn" type="button" data-screen-target="trips">Trips</button>
-      <button class="nav-btn" type="button" data-screen-target="expenses">Expenses</button>
-      <button class="nav-btn" type="button" data-screen-target="customers">Customers</button>
-      <button class="nav-btn" type="button" data-screen-target="invoices">Invoices</button>
-      <button class="nav-btn" type="button" data-screen-target="reports">Reports</button>
-      <button class="nav-btn" type="button" data-screen-target="settings">Settings</button>
+      <button class="nav-btn active" type="button" data-screen-target="dashboard">
+        <span class="nav-icon nav-icon-home" aria-hidden="true"></span>
+        <span data-copy="nav_dashboard">Dashboard</span>
+      </button>
+      <button class="nav-btn" type="button" data-screen-target="children">
+        <span class="nav-icon nav-icon-children" aria-hidden="true"></span>
+        <span data-copy="nav_children">Children</span>
+      </button>
+      <button class="nav-btn" type="button" data-screen-target="checkin">
+        <span class="nav-icon nav-icon-checkin" aria-hidden="true"></span>
+        <span data-copy="nav_checkin">Check-In</span>
+      </button>
+      <button class="nav-btn" type="button" data-screen-target="ministry">
+        <span class="nav-icon nav-icon-ministry" aria-hidden="true"></span>
+        <span data-copy="nav_ministry">Ministry</span>
+      </button>
+      <button class="nav-btn" type="button" data-screen-target="polls">
+        <span class="nav-icon nav-icon-polls" aria-hidden="true"></span>
+        <span data-copy="nav_polls">Polls</span>
+      </button>
+      <button class="nav-btn" type="button" data-screen-target="reports">
+        <span class="nav-icon nav-icon-reports" aria-hidden="true"></span>
+        <span data-copy="nav_reports">Reports</span>
+      </button>
+      <button class="nav-btn" type="button" data-screen-target="settings">
+        <span class="nav-icon nav-icon-settings" aria-hidden="true"></span>
+        <span data-copy="nav_settings">Settings</span>
+      </button>
     </nav>
 
     <main class="app-body">
       <section class="screen active" id="screen-dashboard" data-screen="dashboard">
         <div class="card hero-card">
-          <div class="section-head">
+          <div class="hero-grid">
             <div>
-              <p class="eyebrow">Business pulse</p>
-              <h2 class="section-title">Daily dashboard</h2>
-              <p class="section-copy">Track cash-up totals, key income drivers, and period performance at a glance.</p>
+              <p class="eyebrow">Sunday overview</p>
+              <h2 class="section-title">A calmer way to run children's church</h2>
+              <p class="section-copy">See check-ins, safety alerts, visitors, follow-up, classes, volunteers, and active polls in one mobile-friendly flow.</p>
             </div>
-            <div class="quick-chip-row" id="dashboardRangeChips">
-              <button class="chip active" type="button" data-dashboard-range="today">Today</button>
-              <button class="chip" type="button" data-dashboard-range="7d">7 days</button>
-              <button class="chip" type="button" data-dashboard-range="30d">30 days</button>
-              <button class="chip" type="button" data-dashboard-range="month">This month</button>
+            <div class="quick-actions">
+              <button class="btn btn-primary" id="dashboardAddChildBtn" type="button">Register child</button>
+              <button class="btn btn-secondary" id="dashboardOpenCheckinBtn" type="button">Open check-in</button>
+              <button class="btn btn-secondary" id="dashboardOpenReportsBtn" type="button">Sunday summary</button>
+              <button class="btn btn-secondary" id="dashboardOpenPollsBtn" type="button">View polls</button>
             </div>
           </div>
-
-          <div class="stats-grid" id="dashboardTopStats">
-            <article class="stat-card">
-              <p class="stat-label">Trips</p>
-              <h3 class="stat-value" id="dashboardTripCount">0</h3>
-              <p class="stat-foot">Selected period</p>
-            </article>
-            <article class="stat-card stat-card-success">
-              <p class="stat-label">Income</p>
-              <h3 class="stat-value" id="dashboardIncome">R0.00</h3>
-              <p class="stat-foot">Fares plus tips</p>
-            </article>
-            <article class="stat-card stat-card-warning">
-              <p class="stat-label">Expenses</p>
-              <h3 class="stat-value" id="dashboardExpenses">R0.00</h3>
-              <p class="stat-foot">Operational spend</p>
-            </article>
-            <article class="stat-card stat-card-primary">
-              <p class="stat-label">Net profit</p>
-              <h3 class="stat-value" id="dashboardNet">R0.00</h3>
-              <p class="stat-foot" id="dashboardRangeLabel">Current view</p>
-            </article>
-          </div>
+          <div class="stats-grid" id="dashboardStats"></div>
         </div>
 
-        <div class="split-grid">
-          <div class="card">
+        <div class="dashboard-grid">
+          <article class="card">
             <div class="card-header">
               <div>
-                <p class="eyebrow">End of day</p>
-                <h3 class="card-title">Daily cash-up</h3>
+                <p class="eyebrow">Today's classes</p>
+                <h3 class="card-title">Attendance by class</h3>
               </div>
-              <span class="pill subtle-pill" id="cashUpDateLabel">Today</span>
+              <span class="pill subtle-pill" id="dashboardServiceLabel">Today</span>
             </div>
-            <div class="metric-grid metric-grid-compact">
-              <article class="metric-card">
-                <span class="metric-label">Trips today</span>
-                <strong class="metric-value" id="cashUpTripCount">0</strong>
-              </article>
-              <article class="metric-card">
-                <span class="metric-label">Income today</span>
-                <strong class="metric-value" id="cashUpIncome">R0.00</strong>
-              </article>
-              <article class="metric-card">
-                <span class="metric-label">Expenses today</span>
-                <strong class="metric-value" id="cashUpExpenses">R0.00</strong>
-              </article>
-              <article class="metric-card">
-                <span class="metric-label">Net amount</span>
-                <strong class="metric-value" id="cashUpNet">R0.00</strong>
-              </article>
-              <article class="metric-card">
-                <span class="metric-label">Cash collected</span>
-                <strong class="metric-value" id="cashCollected">R0.00</strong>
-              </article>
-              <article class="metric-card">
-                <span class="metric-label">Card or mobile</span>
-                <strong class="metric-value" id="digitalCollected">R0.00</strong>
-              </article>
-            </div>
-          </div>
+            <div class="list-stack compact-stack" id="dashboardClassBreakdown"></div>
+          </article>
 
-          <div class="card">
+          <article class="card">
             <div class="card-header">
               <div>
-                <p class="eyebrow">Smarter decisions</p>
-                <h3 class="card-title">Business insights</h3>
+                <p class="eyebrow">Volunteer view</p>
+                <h3 class="card-title">Who's serving</h3>
               </div>
             </div>
-            <div class="metric-grid" id="dashboardInsights"></div>
-          </div>
+            <div class="list-stack compact-stack" id="dashboardVolunteerSummary"></div>
+          </article>
         </div>
 
-        <div class="split-grid">
-          <div class="card">
+        <div class="dashboard-grid">
+          <article class="card">
             <div class="card-header">
               <div>
-                <p class="eyebrow">Momentum</p>
-                <h3 class="card-title">Income trend</h3>
+                <p class="eyebrow">Upcoming</p>
+                <h3 class="card-title">Events and reminders</h3>
               </div>
-              <span class="muted-copy">Last 7 days</span>
             </div>
-            <div class="chart-panel">
-              <canvas id="incomeTrendChart" aria-label="Income trend chart"></canvas>
-            </div>
-          </div>
+            <div class="list-stack compact-stack" id="dashboardEvents"></div>
+          </article>
 
-          <div class="card">
+          <article class="card">
             <div class="card-header">
               <div>
-                <p class="eyebrow">Quick actions</p>
-                <h3 class="card-title">Capture work fast</h3>
+                <p class="eyebrow">Attention needed</p>
+                <h3 class="card-title">Recent alerts</h3>
               </div>
             </div>
-            <div class="action-grid">
-              <button class="btn btn-primary" type="button" id="dashboardAddTripBtn">Log trip</button>
-              <button class="btn btn-secondary" type="button" id="dashboardAddExpenseBtn">Add expense</button>
-              <button class="btn btn-secondary" type="button" id="dashboardAddCustomerBtn">New customer</button>
-              <button class="btn btn-secondary" type="button" id="dashboardOpenInvoicesBtn">Invoice customer</button>
-            </div>
-          </div>
+            <div class="list-stack compact-stack" id="dashboardAlerts"></div>
+          </article>
         </div>
       </section>
 
-      <section class="screen" id="screen-trips" data-screen="trips">
+      <section class="screen" id="screen-children" data-screen="children">
         <div class="card">
           <div class="section-head">
             <div>
-              <p class="eyebrow">Trip book</p>
-              <h2 class="section-title">Trips</h2>
-              <p class="section-copy">Log journeys, assign them to customers, and keep payment totals accurate for cash-up and invoicing.</p>
+              <p class="eyebrow">Child profiles</p>
+              <h2 class="section-title">Children and families</h2>
+              <p class="section-copy">Register children, keep emergency details visible, and surface attendance history, follow-up, and pastoral notes clearly.</p>
             </div>
-            <button class="btn btn-primary btn-inline" type="button" id="openTripModalBtn">Log trip</button>
+            <button class="btn btn-primary btn-inline" type="button" id="openChildModalBtn">Add child</button>
           </div>
 
           <div class="toolbar toolbar-stack">
             <div class="toolbar-fields">
               <label class="field">
-                <span>Filter by customer</span>
-                <select id="tripCustomerFilter"></select>
+                <span>Class group</span>
+                <select id="childClassFilter"></select>
               </label>
-              <label class="field">
-                <span>Search</span>
-                <input id="tripSearchInput" type="search" placeholder="Route, customer, or passenger">
-              </label>
-            </div>
-            <div class="summary-strip" id="tripSummaryStrip"></div>
-          </div>
-        </div>
-
-        <div class="list-stack" id="tripList"></div>
-        <div class="empty-state" id="tripEmptyState" hidden>
-          <h3>No trips logged yet</h3>
-          <p>Start with your first trip to unlock reporting, dashboard metrics, and invoicing.</p>
-        </div>
-      </section>
-
-      <section class="screen" id="screen-expenses" data-screen="expenses">
-        <div class="card">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow">Cost control</p>
-              <h2 class="section-title">Expenses</h2>
-              <p class="section-copy">Track running costs, attach receipts, and keep proof ready for reports and customer work.</p>
-            </div>
-            <button class="btn btn-primary btn-inline" type="button" id="openExpenseModalBtn">Add expense</button>
-          </div>
-
-          <div class="toolbar toolbar-stack">
-            <div class="toolbar-fields">
-              <label class="field">
-                <span>Category</span>
-                <select id="expenseCategoryFilter">
-                  <option value="all">All categories</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>Search</span>
-                <input id="expenseSearchInput" type="search" placeholder="Supplier, note, or category">
-              </label>
-            </div>
-            <div class="summary-strip" id="expenseSummaryStrip"></div>
-          </div>
-        </div>
-
-        <div class="list-stack" id="expenseList"></div>
-        <div class="empty-state" id="expenseEmptyState" hidden>
-          <h3>No expenses saved yet</h3>
-          <p>Add operating costs to get accurate profit and end-of-day numbers.</p>
-        </div>
-      </section>
-
-      <section class="screen" id="screen-customers" data-screen="customers">
-        <div class="card">
-          <div class="section-head">
-            <div>
-              <p class="eyebrow">Regular work</p>
-              <h2 class="section-title">Customers</h2>
-              <p class="section-copy">Manage monthly and regular customers, route notes, billing information, and invoice defaults.</p>
-            </div>
-            <button class="btn btn-primary btn-inline" type="button" id="openCustomerModalBtn">Add customer</button>
-          </div>
-
-          <div class="toolbar toolbar-stack">
-            <div class="toolbar-fields">
               <label class="field">
                 <span>Status</span>
-                <select id="customerStatusFilter">
-                  <option value="active">Active only</option>
-                  <option value="all">All customers</option>
-                  <option value="inactive">Inactive only</option>
+                <select id="childStatusFilter">
+                  <option value="active">Active children</option>
+                  <option value="followup">Follow-up needed</option>
+                  <option value="visitors">Visitors</option>
+                  <option value="all">All children</option>
                 </select>
               </label>
-              <label class="field">
+              <label class="field field-grow">
                 <span>Search</span>
-                <input id="customerSearchInput" type="search" placeholder="Name, phone, or company">
+                <input id="childSearchInput" type="search" placeholder="Child, guardian, allergy, or pickup code">
               </label>
             </div>
-            <div class="summary-strip" id="customerSummaryStrip"></div>
+            <div class="summary-strip" id="childSummaryStrip"></div>
           </div>
         </div>
 
-        <div class="list-stack" id="customerList"></div>
-        <div class="empty-state" id="customerEmptyState" hidden>
-          <h3>No customers yet</h3>
-          <p>Add regular riders and monthly accounts to link trips and generate polished invoices.</p>
+        <div class="list-stack" id="childList"></div>
+        <div class="empty-state" id="childEmptyState" hidden>
+          <h3>No child profiles yet</h3>
+          <p>Start with the first family so volunteers can check children in safely and quickly.</p>
         </div>
       </section>
 
-      <section class="screen" id="screen-invoices" data-screen="invoices">
+      <section class="screen" id="screen-checkin" data-screen="checkin">
         <div class="card">
           <div class="section-head">
             <div>
-              <p class="eyebrow">Client billing</p>
-              <h2 class="section-title">Monthly invoices</h2>
-              <p class="section-copy">Pull customer trips into a premium PDF invoice, save the invoice record, and share it from your phone.</p>
+              <p class="eyebrow">Today's workflow</p>
+              <h2 class="section-title">Check-in and pickup</h2>
+              <p class="section-copy">Move children through arrival and pickup with clear safety prompts, class visibility, and fast volunteer actions.</p>
+            </div>
+            <div class="button-row">
+              <button class="btn btn-secondary btn-inline" type="button" id="openVisitorModalBtn">First-time visitor</button>
+              <button class="btn btn-primary btn-inline" type="button" id="openCheckinChildrenBtn">Open child profiles</button>
             </div>
           </div>
 
-          <div class="invoice-builder">
-            <div class="form-grid form-grid-wide">
+          <div class="toolbar toolbar-stack">
+            <div class="toolbar-fields">
               <label class="field">
-                <span>Customer</span>
-                <select id="invoiceCustomerSelect"></select>
+                <span>Class group</span>
+                <select id="checkinClassFilter"></select>
               </label>
               <label class="field">
-                <span>Invoice number</span>
-                <div class="input-with-action">
-                  <input id="invoiceNumberInput" type="text" placeholder="IR-202603-001">
-                  <button class="btn btn-secondary btn-inline-small" type="button" id="generateInvoiceNumberBtn">Generate</button>
-                </div>
-              </label>
-              <label class="field">
-                <span>Issue date</span>
-                <input id="invoiceIssueDate" type="date">
-              </label>
-              <label class="field">
-                <span>Due date</span>
-                <input id="invoiceDueDate" type="date">
-              </label>
-              <label class="field">
-                <span>From</span>
-                <input id="invoiceFromDate" type="date">
-              </label>
-              <label class="field">
-                <span>To</span>
-                <input id="invoiceToDate" type="date">
-              </label>
-              <label class="field">
-                <span>PDF theme</span>
-                <select id="invoiceThemeSelect">
-                  <option value="modern">Modern Professional</option>
-                  <option value="minimal">Clean Minimal</option>
+                <span>Status</span>
+                <select id="attendanceStatusFilter">
+                  <option value="all">All children</option>
+                  <option value="checked-in">Checked in</option>
+                  <option value="checked-out">Checked out</option>
+                  <option value="not-checked-in">Not checked in</option>
                 </select>
               </label>
-              <label class="field">
-                <span>Payment terms</span>
-                <input id="invoicePaymentTerms" type="text" placeholder="Payment due within 7 days.">
-              </label>
-              <label class="field field-full">
-                <span>Invoice notes</span>
-                <textarea id="invoiceNotesInput" rows="3" placeholder="Thank you for your continued business."></textarea>
+              <label class="field field-grow">
+                <span>Search</span>
+                <input id="checkinSearchInput" type="search" placeholder="Search child or guardian">
               </label>
             </div>
+            <div class="summary-strip" id="checkinSummaryStrip"></div>
+          </div>
+        </div>
 
-            <div class="invoice-preview" id="invoicePreview">
-              <div class="empty-state empty-state-compact">
-                <h3>Select a customer and date range</h3>
-                <p>Your invoice preview will appear here once matching trips are found.</p>
+        <div class="dashboard-grid">
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <p class="eyebrow">Ready for pickup</p>
+                <h3 class="card-title">Children still checked in</h3>
               </div>
             </div>
+            <div class="list-stack compact-stack" id="pendingPickupList"></div>
+          </article>
 
-            <div class="action-row">
-              <button class="btn btn-secondary" type="button" id="saveInvoiceBtn">Save invoice</button>
-              <button class="btn btn-primary" type="button" id="downloadInvoiceBtn">Save PDF</button>
-              <button class="btn btn-secondary" type="button" id="shareInvoiceBtn">Share PDF</button>
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <p class="eyebrow">Completed pickups</p>
+                <h3 class="card-title">Checked out today</h3>
+              </div>
+            </div>
+            <div class="list-stack compact-stack" id="checkedOutList"></div>
+          </article>
+        </div>
+
+        <article class="card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Roster</p>
+              <h3 class="card-title">Today's attendance workflow</h3>
+            </div>
+            <span class="muted-copy" id="todayServiceLabel">Today's service</span>
+          </div>
+          <div class="list-stack" id="checkinRosterList"></div>
+        </article>
+
+        <article class="card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Follow-up</p>
+              <h3 class="card-title">Absent children needing a call</h3>
+            </div>
+          </div>
+          <div class="list-stack compact-stack" id="absentFollowUpList"></div>
+        </article>
+      </section>
+
+      <section class="screen" id="screen-ministry" data-screen="ministry">
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Ministry setup</p>
+              <h2 class="section-title">Classes, volunteers, and events</h2>
+              <p class="section-copy">Keep leaders, rooms, class colours, and upcoming ministry moments visible for the whole team.</p>
+            </div>
+            <div class="button-row">
+              <button class="btn btn-secondary btn-inline" type="button" id="openVolunteerModalBtn">Add volunteer</button>
+              <button class="btn btn-secondary btn-inline" type="button" id="openEventModalBtn">Add event</button>
+              <button class="btn btn-primary btn-inline" type="button" id="openClassModalBtn">Add class</button>
             </div>
           </div>
         </div>
 
-        <div class="card">
+        <div class="dashboard-grid">
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <p class="eyebrow">Class groups</p>
+                <h3 class="card-title">Rooms and age bands</h3>
+              </div>
+            </div>
+            <div class="list-stack" id="classList"></div>
+          </article>
+
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <p class="eyebrow">Volunteer visibility</p>
+                <h3 class="card-title">Serving team</h3>
+              </div>
+            </div>
+            <div class="list-stack" id="volunteerList"></div>
+          </article>
+        </div>
+
+        <article class="card">
           <div class="card-header">
             <div>
-              <p class="eyebrow">Invoice archive</p>
-              <h3 class="card-title">Saved invoices</h3>
+              <p class="eyebrow">Upcoming ministry moments</p>
+              <h3 class="card-title">Events and reminders</h3>
             </div>
           </div>
-          <div class="list-stack" id="invoiceArchive"></div>
-          <div class="empty-state empty-state-compact" id="invoiceArchiveEmpty" hidden>
-            <h3>No invoices saved yet</h3>
-            <p>Saved invoices appear here so you can re-export them later.</p>
+          <div class="list-stack" id="eventList"></div>
+        </article>
+      </section>
+
+      <section class="screen" id="screen-polls" data-screen="polls">
+        <div class="card">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Church polls</p>
+              <h2 class="section-title">Polls and lightweight voting</h2>
+              <p class="section-copy">Create simple church decisions, volunteer coordination polls, and member feedback votes without jumping to WhatsApp every time.</p>
+            </div>
+            <div class="button-row">
+              <label class="field field-inline">
+                <span>Status</span>
+                <select id="pollStatusFilter">
+                  <option value="active">Active first</option>
+                  <option value="all">All polls</option>
+                  <option value="closed">Closed</option>
+                  <option value="draft">Drafts</option>
+                </select>
+              </label>
+              <button class="btn btn-primary btn-inline" type="button" id="openPollModalBtn">Create poll</button>
+            </div>
           </div>
+          <div class="summary-strip" id="activePollSummary"></div>
+        </div>
+
+        <div class="list-stack" id="pollList"></div>
+        <div class="empty-state" id="pollEmptyState" hidden>
+          <h3>No polls yet</h3>
+          <p>Create the first church poll to coordinate ministry decisions, availability, or event preferences.</p>
         </div>
       </section>
 
@@ -373,11 +349,14 @@
         <div class="card">
           <div class="section-head">
             <div>
-              <p class="eyebrow">Performance review</p>
-              <h2 class="section-title">Reports</h2>
-              <p class="section-copy">Use reliable date filtering, customer filters, and deeper analytics to understand your business properly.</p>
+              <p class="eyebrow">Insights and exports</p>
+              <h2 class="section-title">Dashboard and reporting</h2>
+              <p class="section-copy">See attendance trends, class movement, birthdays, absentees, and poll engagement in a cleaner Sunday report flow.</p>
             </div>
-            <button class="btn btn-primary btn-inline" type="button" id="exportWorkbookBtn">Save workbook</button>
+            <div class="button-row">
+              <button class="btn btn-secondary btn-inline" id="printSundaySummaryBtn" type="button">Print Sunday summary</button>
+              <button class="btn btn-primary btn-inline" id="exportWorkbookBtn" type="button">Export workbook</button>
+            </div>
           </div>
 
           <div class="toolbar toolbar-stack">
@@ -390,387 +369,615 @@
                 <span>To</span>
                 <input id="reportToDate" type="date">
               </label>
-              <label class="field">
-                <span>Customer</span>
-                <select id="reportCustomerFilter"></select>
-              </label>
             </div>
             <div class="quick-chip-row" id="reportPresetChips">
-              <button class="chip" type="button" data-report-preset="today">Today</button>
-              <button class="chip" type="button" data-report-preset="7d">7 days</button>
-              <button class="chip active" type="button" data-report-preset="month">This month</button>
-              <button class="chip" type="button" data-report-preset="30d">30 days</button>
+              <button class="chip active" type="button" data-report-preset="today">Today</button>
+              <button class="chip" type="button" data-report-preset="month">This month</button>
+              <button class="chip" type="button" data-report-preset="90d">90 days</button>
             </div>
           </div>
+          <div class="stats-grid" id="reportTopStats"></div>
         </div>
 
-        <div class="stats-grid" id="reportTopStats"></div>
+        <div class="dashboard-grid">
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <p class="eyebrow">Attendance trend</p>
+                <h3 class="card-title">Momentum over time</h3>
+              </div>
+            </div>
+            <div class="chart-panel">
+              <canvas id="attendanceTrendChart" aria-label="Attendance trend"></canvas>
+            </div>
+          </article>
 
-        <div class="split-grid">
-          <div class="card">
+          <article class="card">
             <div class="card-header">
               <div>
-                <p class="eyebrow">Efficiency</p>
-                <h3 class="card-title">Driver metrics</h3>
+                <p class="eyebrow">Class breakdown</p>
+                <h3 class="card-title">Where children are placed</h3>
               </div>
             </div>
-            <div class="metric-grid" id="reportMetrics"></div>
-          </div>
-          <div class="card">
-            <div class="card-header">
-              <div>
-                <p class="eyebrow">Breakdown</p>
-                <h3 class="card-title">Routes and costs</h3>
-              </div>
+            <div class="chart-panel">
+              <canvas id="classBreakdownChart" aria-label="Class attendance breakdown"></canvas>
             </div>
-            <div class="breakdown-list" id="reportBreakdowns"></div>
-          </div>
+          </article>
         </div>
+
+        <div class="dashboard-grid">
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <p class="eyebrow">Absentees</p>
+                <h3 class="card-title">Children needing follow-up</h3>
+              </div>
+            </div>
+            <div class="list-stack compact-stack" id="reportFollowUpList"></div>
+          </article>
+
+          <article class="card">
+            <div class="card-header">
+              <div>
+                <p class="eyebrow">Birthdays</p>
+                <h3 class="card-title">Upcoming reminders</h3>
+              </div>
+            </div>
+            <div class="list-stack compact-stack" id="reportBirthdayList"></div>
+          </article>
+        </div>
+
+        <article class="card">
+          <div class="card-header">
+            <div>
+              <p class="eyebrow">Poll results</p>
+              <h3 class="card-title">Poll engagement summary</h3>
+            </div>
+          </div>
+          <div class="list-stack compact-stack" id="reportPollSummaryList"></div>
+        </article>
       </section>
 
       <section class="screen" id="screen-settings" data-screen="settings">
-        <form id="settingsForm" class="screen-stack" novalidate>
-          <div class="card">
-            <div class="card-header">
-              <div>
-                <p class="eyebrow">Driver profile</p>
-                <h3 class="card-title">Business details</h3>
+        <div class="screen-stack">
+          <form class="screen-stack" id="settingsForm">
+            <article class="card">
+              <div class="card-header">
+                <div>
+                  <p class="eyebrow">Church profile</p>
+                  <h2 class="section-title">Admin centre</h2>
+                  <p class="section-copy">Keep branding, backend connection, safety defaults, and volunteer-facing role modes organised in one place.</p>
+                </div>
+                <button class="btn btn-primary btn-inline" type="submit">Save settings</button>
               </div>
-            </div>
-            <div class="form-grid form-grid-wide">
-              <label class="field">
-                <span>Driver name</span>
-                <input id="settingsDriverName" type="text" placeholder="Your full name">
-              </label>
-              <label class="field">
-                <span>Business or trading name</span>
-                <input id="settingsBusinessName" type="text" placeholder="Taxi business name">
-              </label>
-              <label class="field">
-                <span>Phone number</span>
-                <input id="settingsDriverPhone" type="tel" placeholder="+27 72 123 4567">
-              </label>
-              <label class="field">
-                <span>Email</span>
-                <input id="settingsDriverEmail" type="email" placeholder="name@example.com">
-              </label>
-              <label class="field">
-                <span>Vehicle plate</span>
-                <input id="settingsVehiclePlate" type="text" placeholder="ABC 123 GP">
-              </label>
-              <label class="field">
-                <span>VAT or tax number</span>
-                <input id="settingsVatNumber" type="text" placeholder="Optional">
-              </label>
-              <label class="field field-full">
-                <span>Business address</span>
-                <textarea id="settingsBusinessAddress" rows="3" placeholder="Address for invoice billing section"></textarea>
-              </label>
-            </div>
-          </div>
 
-          <div class="card">
-            <div class="card-header">
-              <div>
-                <p class="eyebrow">Preferences</p>
-                <h3 class="card-title">App defaults</h3>
+              <div class="form-grid">
+                <label class="field">
+                  <span>Church name</span>
+                  <input id="settingsChurchName" type="text" maxlength="80" required>
+                </label>
+                <label class="field">
+                  <span>Location / campus</span>
+                  <input id="settingsCampus" type="text" maxlength="80">
+                </label>
+                <label class="field">
+                  <span>Logo URL</span>
+                  <input id="settingsLogoUrl" type="url" placeholder="Optional custom logo URL">
+                </label>
+                <label class="field">
+                  <span>Current user name</span>
+                  <input id="settingsCurrentUser" type="text" maxlength="60" placeholder="Used for notes, votes, and checkout actions">
+                </label>
+                <label class="field">
+                  <span>Theme</span>
+                  <select id="settingsTheme">
+                    <option value="system">System</option>
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Language</span>
+                  <select id="settingsLanguage">
+                    <option value="en">English</option>
+                    <option value="af">Afrikaans</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Role mode</span>
+                  <select id="settingsRole">
+                    <option value="admin">Admin</option>
+                    <option value="leader">Ministry Leader</option>
+                    <option value="volunteer">Volunteer</option>
+                    <option value="desk">Check-in Desk</option>
+                  </select>
+                </label>
+                <label class="field">
+                  <span>Follow-up window (days)</span>
+                  <input id="settingsFollowUpWindow" type="number" min="1" max="90" step="1">
+                </label>
               </div>
-            </div>
-            <div class="form-grid form-grid-wide">
-              <label class="field">
-                <span>Theme</span>
-                <select id="settingsTheme">
-                  <option value="system">System</option>
-                  <option value="light">Light</option>
-                  <option value="dark">Dark</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>Currency</span>
-                <select id="settingsCurrency">
-                  <option value="ZAR">South African Rand</option>
-                  <option value="USD">US Dollar</option>
-                  <option value="EUR">Euro</option>
-                  <option value="GBP">British Pound</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>Role mode</span>
-                <select id="settingsRole">
-                  <option value="owner">Owner</option>
-                  <option value="manager">Manager</option>
-                  <option value="driver">Driver</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>Default invoice theme</span>
-                <select id="settingsInvoiceTheme">
-                  <option value="modern">Modern Professional</option>
-                  <option value="minimal">Clean Minimal</option>
-                </select>
-              </label>
-              <label class="field">
-                <span>Invoice prefix</span>
-                <input id="settingsInvoicePrefix" type="text" maxlength="10" placeholder="IR">
-              </label>
-              <label class="field">
-                <span>Default payment terms</span>
-                <input id="settingsPaymentTerms" type="text" placeholder="Payment due within 7 days.">
-              </label>
-              <label class="field field-full">
-                <span>Default invoice notes</span>
-                <textarea id="settingsInvoiceNotes" rows="3" placeholder="Optional footer note for invoices"></textarea>
-              </label>
-            </div>
-          </div>
+            </article>
 
-          <div class="card">
-            <div class="card-header">
-              <div>
-                <p class="eyebrow">Data management</p>
-                <h3 class="card-title">Backup and restore</h3>
-              </div>
-            </div>
-            <div class="action-grid action-grid-wide">
-              <button class="btn btn-secondary" type="button" id="exportBackupBtn">Save JSON backup</button>
-              <button class="btn btn-secondary" type="button" id="restoreBackupBtn">Import backup</button>
-              <button class="btn btn-danger" type="button" id="clearDataBtn">Clear all local data</button>
-            </div>
-            <label class="toggle-row" for="safetyBackupToggle">
-              <input id="safetyBackupToggle" type="checkbox" checked>
-              <span>Create a safety backup before restore</span>
-            </label>
-            <div class="meta-panel" id="storageSummary"></div>
-            <p class="helper-text">Backups include trips, expenses, customers, invoices, settings, and stored receipt images.</p>
-          </div>
+            <div class="dashboard-grid">
+              <article class="card">
+                <div class="card-header">
+                  <div>
+                    <p class="eyebrow">Backend and sync</p>
+                    <h3 class="card-title">Google Sheets + Apps Script</h3>
+                  </div>
+                </div>
+                <div class="screen-stack">
+                  <label class="field">
+                    <span>Apps Script web app URL</span>
+                    <input id="settingsAppScriptUrl" type="url" placeholder="https://script.google.com/macros/s/.../exec">
+                  </label>
+                  <label class="toggle-field">
+                    <input id="settingsAutoSync" type="checkbox">
+                    <span>Sync automatically when online</span>
+                  </label>
+                  <div class="button-row">
+                    <button class="btn btn-secondary" id="testConnectionBtn" type="button">Test connection</button>
+                    <button class="btn btn-primary" id="syncNowBtn" type="button">Sync now</button>
+                  </div>
+                  <div class="note-panel" id="syncSummary"></div>
+                </div>
+              </article>
 
-          <div class="card permission-note" id="rolePermissionNote"></div>
+              <article class="card">
+                <div class="card-header">
+                  <div>
+                    <p class="eyebrow">Safety and defaults</p>
+                    <h3 class="card-title">Pickup, messaging, and care</h3>
+                  </div>
+                </div>
+                <div class="screen-stack">
+                  <label class="toggle-field">
+                    <input id="settingsPickupRequired" type="checkbox">
+                    <span>Require pickup code for checkout</span>
+                  </label>
+                  <label class="toggle-field">
+                    <input id="settingsAllowOverride" type="checkbox">
+                    <span>Allow admin override when pickup code is unavailable</span>
+                  </label>
+                  <label class="field">
+                    <span>Default welcome message</span>
+                    <textarea id="settingsWelcomeMessage" rows="3"></textarea>
+                  </label>
+                  <label class="field">
+                    <span>Default checkout message</span>
+                    <textarea id="settingsCheckoutMessage" rows="3"></textarea>
+                  </label>
+                  <div class="note-panel" id="rolePermissionNote"></div>
+                </div>
+              </article>
+            </div>
 
-          <div class="action-row">
-            <button class="btn btn-primary" type="submit">Save settings</button>
-          </div>
-        </form>
+            <div class="dashboard-grid">
+              <article class="card">
+                <div class="card-header">
+                  <div>
+                    <p class="eyebrow">Backups and exports</p>
+                    <h3 class="card-title">Local data tools</h3>
+                  </div>
+                </div>
+                <div class="button-row">
+                  <button class="btn btn-secondary" id="exportBackupBtn" type="button">Export backup</button>
+                  <button class="btn btn-secondary" id="restoreBackupBtn" type="button">Restore backup</button>
+                  <button class="btn btn-danger" id="clearDataBtn" type="button">Clear local data</button>
+                </div>
+                <input id="restoreBackupInput" type="file" accept="application/json" hidden>
+                <div class="note-panel" id="storageSummary"></div>
+              </article>
+
+              <article class="card">
+                <div class="card-header">
+                  <div>
+                    <p class="eyebrow">App identity</p>
+                    <h3 class="card-title">Agape Kids surfaces</h3>
+                  </div>
+                </div>
+                <div class="note-panel">
+                  <p>The Agape Kids name stays fixed across the PWA, reports, and Android wrapper.</p>
+                  <p>Use the logo URL field above to swap in an official hosted church logo later if needed.</p>
+                  <p>The current local branding is already wired into the header, splash, report printouts, and install icons.</p>
+                </div>
+              </article>
+            </div>
+          </form>
+        </div>
       </section>
     </main>
   </div>
 
   <div class="modal-shell" id="modalShell" aria-hidden="true">
-    <div class="modal-backdrop" data-close-modal></div>
-
-    <section class="modal" id="tripModal" role="dialog" aria-modal="true" aria-labelledby="tripModalTitle" hidden>
-      <div class="modal-header">
-        <div>
-          <p class="eyebrow">Trip entry</p>
-          <h3 class="modal-title" id="tripModalTitle">Log trip</h3>
-        </div>
-        <button class="icon-btn modal-close" type="button" data-close-modal>Close</button>
-      </div>
-      <form id="tripForm" class="screen-stack" novalidate>
-        <input id="tripIdInput" type="hidden">
-        <div class="form-grid">
-          <label class="field">
-            <span>Date and time</span>
-            <input id="tripDateTimeInput" type="datetime-local" required>
-          </label>
-          <label class="field">
-            <span>Customer</span>
-            <select id="tripCustomerSelect"></select>
-          </label>
-          <label class="field">
-            <span>Pickup</span>
-            <input id="tripPickupInput" type="text" placeholder="Pickup area" required>
-          </label>
-          <label class="field">
-            <span>Dropoff</span>
-            <input id="tripDropoffInput" type="text" placeholder="Dropoff area" required>
-          </label>
-          <label class="field">
-            <span>Passenger name</span>
-            <input id="tripPassengerInput" type="text" placeholder="Optional">
-          </label>
-          <label class="field">
-            <span>Payment method</span>
-            <select id="tripPaymentInput">
-              <option value="cash">Cash</option>
-              <option value="card">Card</option>
-              <option value="mobile">Mobile payment</option>
-              <option value="mixed">Mixed</option>
-            </select>
-          </label>
-          <label class="field">
-            <span>Fare</span>
-            <input id="tripFareInput" type="number" min="0" step="0.01" placeholder="0.00" required>
-          </label>
-          <label class="field field-full hidden" id="tripCashPortionField">
-            <span>Cash portion for mixed payment</span>
-            <input id="tripCashPortionInput" type="number" min="0" step="0.01" placeholder="0.00">
-            <small class="helper-text">The remaining amount is counted as card or mobile.</small>
-          </label>
-        </div>
-        <div class="action-row">
-          <button class="btn btn-secondary" type="button" data-close-modal>Cancel</button>
-          <button class="btn btn-danger hidden" type="button" id="deleteTripBtn">Delete</button>
-          <button class="btn btn-primary" type="submit">Save trip</button>
-        </div>
-      </form>
-    </section>
-
-    <section class="modal" id="expenseModal" role="dialog" aria-modal="true" aria-labelledby="expenseModalTitle" hidden>
-      <div class="modal-header">
-        <div>
-          <p class="eyebrow">Expense entry</p>
-          <h3 class="modal-title" id="expenseModalTitle">Add expense</h3>
-        </div>
-        <button class="icon-btn modal-close" type="button" data-close-modal>Close</button>
-      </div>
-      <form id="expenseForm" class="screen-stack" novalidate>
-        <input id="expenseIdInput" type="hidden">
-        <div class="form-grid">
-          <label class="field">
-            <span>Date</span>
-            <input id="expenseDateInput" type="date" required>
-          </label>
-          <label class="field">
-            <span>Category</span>
-            <select id="expenseCategoryInput" required></select>
-          </label>
-          <label class="field">
-            <span>Amount</span>
-            <input id="expenseAmountInput" type="number" min="0" step="0.01" placeholder="0.00" required>
-          </label>
-          <label class="field">
-            <span>Quantity</span>
-            <input id="expenseQuantityInput" type="number" min="0" step="0.1" placeholder="1">
-          </label>
-          <label class="field field-full">
-            <span>Description</span>
-            <input id="expenseDescriptionInput" type="text" placeholder="Fuel, service, parking, or supplier name" required>
-          </label>
-          <label class="field field-full">
-            <span>Receipt image</span>
-            <input id="expenseReceiptInput" type="file" accept="image/*">
-            <small class="helper-text">Receipts are compressed and stored locally for offline viewing.</small>
-          </label>
-        </div>
-        <div class="receipt-state" id="expenseReceiptState"></div>
-        <div class="action-row">
-          <button class="btn btn-secondary" type="button" data-close-modal>Cancel</button>
-          <button class="btn btn-danger hidden" type="button" id="deleteExpenseBtn">Delete</button>
-          <button class="btn btn-primary" type="submit">Save expense</button>
-        </div>
-      </form>
-    </section>
-
-    <section class="modal" id="customerModal" role="dialog" aria-modal="true" aria-labelledby="customerModalTitle" hidden>
-      <div class="modal-header">
-        <div>
-          <p class="eyebrow">Customer details</p>
-          <h3 class="modal-title" id="customerModalTitle">Add customer</h3>
-        </div>
-        <button class="icon-btn modal-close" type="button" data-close-modal>Close</button>
-      </div>
-      <form id="customerForm" class="screen-stack" novalidate>
-        <input id="customerIdInput" type="hidden">
-        <div class="form-grid">
-          <label class="field">
-            <span>Full name or business name</span>
-            <input id="customerNameInput" type="text" placeholder="Customer name" required>
-          </label>
-          <label class="field">
-            <span>Billing type</span>
-            <select id="customerBillingTypeInput">
-              <option value="monthly">Monthly customer</option>
-              <option value="regular">Regular customer</option>
-            </select>
-          </label>
-          <label class="field">
-            <span>Phone number</span>
-            <input id="customerPhoneInput" type="tel" placeholder="+27 72 123 4567">
-          </label>
-          <label class="field">
-            <span>Email</span>
-            <input id="customerEmailInput" type="email" placeholder="Optional">
-          </label>
-          <label class="field">
-            <span>Company details</span>
-            <input id="customerCompanyInput" type="text" placeholder="Company or department">
-          </label>
-          <label class="field">
-            <span>VAT or tax number</span>
-            <input id="customerTaxInput" type="text" placeholder="Optional">
-          </label>
-          <label class="field field-full">
-            <span>Pickup area or route notes</span>
-            <textarea id="customerRouteNotesInput" rows="2" placeholder="Usual route, pickup gate, building, or collection notes"></textarea>
-          </label>
-          <label class="field field-full">
-            <span>Invoice notes</span>
-            <textarea id="customerInvoiceNotesInput" rows="2" placeholder="Client-specific invoice notes"></textarea>
-          </label>
-          <label class="field">
-            <span>Status</span>
-            <select id="customerStatusInput">
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
-          </label>
-        </div>
-        <div class="action-row">
-          <button class="btn btn-secondary" type="button" data-close-modal>Cancel</button>
-          <button class="btn btn-danger hidden" type="button" id="deleteCustomerBtn">Delete</button>
-          <button class="btn btn-primary" type="submit">Save customer</button>
-        </div>
-      </form>
-    </section>
-
-    <section class="modal" id="receiptModal" role="dialog" aria-modal="true" aria-labelledby="receiptModalTitle" hidden>
-      <div class="modal-header">
-        <div>
-          <p class="eyebrow">Stored receipt</p>
-          <h3 class="modal-title" id="receiptModalTitle">Receipt preview</h3>
-        </div>
-        <button class="icon-btn modal-close" type="button" data-close-modal>Close</button>
-      </div>
-      <div class="receipt-viewer">
-        <img id="receiptPreviewImage" alt="Receipt preview">
-        <div class="meta-panel" id="receiptMetaPanel"></div>
-      </div>
-    </section>
-
-    <section class="modal modal-small" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle" hidden>
+    <div class="modal" id="confirmModal" role="dialog" aria-modal="true" hidden>
       <div class="modal-header">
         <div>
           <p class="eyebrow">Please confirm</p>
           <h3 class="modal-title" id="confirmModalTitle">Confirm action</h3>
         </div>
-        <button class="icon-btn modal-close" type="button" data-close-modal>Close</button>
+        <button class="icon-btn" type="button" data-close-modal aria-label="Close">Close</button>
       </div>
-      <div class="screen-stack">
-        <p class="section-copy" id="confirmModalMessage">This action cannot be undone.</p>
-        <div class="action-row">
-          <button class="btn btn-secondary" type="button" id="confirmCancelBtn">Cancel</button>
-          <button class="btn btn-danger" type="button" id="confirmAcceptBtn">Continue</button>
+      <div class="modal-body">
+        <p id="confirmModalMessage">Are you sure?</p>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="confirmCancelBtn" type="button">Cancel</button>
+        <button class="btn btn-primary" id="confirmAcceptBtn" type="button">Continue</button>
+      </div>
+    </div>
+
+    <div class="modal" id="childModal" role="dialog" aria-modal="true" hidden>
+      <form id="childForm">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Child registration</p>
+            <h3 class="modal-title" id="childModalTitle">Add child</h3>
+          </div>
+          <button class="icon-btn" type="button" data-close-modal aria-label="Close">Close</button>
         </div>
-      </div>
-    </section>
+        <div class="modal-body">
+          <input id="childIdInput" type="hidden">
+          <div class="form-grid">
+            <label class="field">
+              <span>First name</span>
+              <input id="childFirstNameInput" type="text" maxlength="40" required>
+            </label>
+            <label class="field">
+              <span>Last name</span>
+              <input id="childLastNameInput" type="text" maxlength="40" required>
+            </label>
+            <label class="field">
+              <span>Birth date</span>
+              <input id="childBirthDateInput" type="date">
+            </label>
+            <label class="field">
+              <span>Grade / age note</span>
+              <input id="childGradeInput" type="text" maxlength="30" placeholder="Grade R, Grade 3, or age">
+            </label>
+            <label class="field">
+              <span>Class group</span>
+              <select id="childClassSelect"></select>
+            </label>
+            <label class="field">
+              <span>Visitor status</span>
+              <select id="childVisitorStatusInput">
+                <option value="member">Regular</option>
+                <option value="first-time">First-time visitor</option>
+                <option value="returning-visitor">Returning visitor</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Family church status</span>
+              <select id="childFamilyStatusInput">
+                <option value="agape">Agape family</option>
+                <option value="other-church">Other church</option>
+                <option value="unchurched">Unchurched family</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Profile status</span>
+              <select id="childStatusInput">
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="form-grid">
+            <label class="field">
+              <span>Primary guardian</span>
+              <input id="childGuardianOneNameInput" type="text" maxlength="60" required>
+            </label>
+            <label class="field">
+              <span>Primary guardian phone</span>
+              <input id="childGuardianOnePhoneInput" type="tel" maxlength="30" required>
+            </label>
+            <label class="field">
+              <span>Second guardian</span>
+              <input id="childGuardianTwoNameInput" type="text" maxlength="60">
+            </label>
+            <label class="field">
+              <span>Second guardian phone</span>
+              <input id="childGuardianTwoPhoneInput" type="tel" maxlength="30">
+            </label>
+          </div>
+
+          <div class="form-grid">
+            <label class="field field-span-2">
+              <span>Allergies</span>
+              <textarea id="childAllergiesInput" rows="2" placeholder="Nut allergy, asthma, lactose intolerance, none"></textarea>
+            </label>
+            <label class="field field-span-2">
+              <span>Medical / safety notes</span>
+              <textarea id="childMedicalInput" rows="2" placeholder="Medication, emergency response notes, support needs"></textarea>
+            </label>
+          </div>
+
+          <div class="form-grid">
+            <label class="field">
+              <span>Pickup code</span>
+              <input id="childPickupCodeInput" type="text" maxlength="8" required>
+            </label>
+            <div class="field field-action">
+              <span>Generate a safer code</span>
+              <button class="btn btn-secondary btn-inline" id="generatePickupCodeBtn" type="button">Generate code</button>
+            </div>
+            <label class="field field-span-2">
+              <span>Pastoral / ministry notes</span>
+              <textarea id="childNotesInput" rows="3" placeholder="First visit notes, family context, follow-up requests, prayer points"></textarea>
+            </label>
+          </div>
+
+          <label class="toggle-field">
+            <input id="childNeedsFollowUpInput" type="checkbox">
+            <span>Needs follow-up this week</span>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-danger hidden" id="deleteChildBtn" type="button">Delete</button>
+          <button class="btn btn-secondary" type="button" data-close-modal>Cancel</button>
+          <button class="btn btn-primary" type="submit">Save child</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="modal" id="attendanceModal" role="dialog" aria-modal="true" hidden>
+      <form id="attendanceForm">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Pickup verification</p>
+            <h3 class="modal-title" id="attendanceModalTitle">Check out child</h3>
+          </div>
+          <button class="icon-btn" type="button" data-close-modal aria-label="Close">Close</button>
+        </div>
+        <div class="modal-body">
+          <input id="attendanceChildIdInput" type="hidden">
+          <input id="attendanceModeInput" type="hidden">
+          <div class="note-panel note-panel-accent" id="attendanceChildSummary"></div>
+          <div class="form-grid">
+            <label class="field">
+              <span>Picked up by</span>
+              <input id="attendancePickedUpByInput" type="text" maxlength="60" required>
+            </label>
+            <label class="field">
+              <span>Pickup code</span>
+              <input id="attendancePickupCodeInput" type="text" maxlength="8">
+            </label>
+          </div>
+          <label class="toggle-field">
+            <input id="attendanceOverrideToggle" type="checkbox">
+            <span>Use admin override if the guardian does not have the code</span>
+          </label>
+          <label class="field">
+            <span>Checkout note</span>
+            <textarea id="attendanceNoteInput" rows="3" placeholder="Any pastoral, safety, or handover note"></textarea>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-secondary" type="button" data-close-modal>Cancel</button>
+          <button class="btn btn-primary" id="attendanceSubmitBtn" type="submit">Confirm checkout</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="modal" id="classModal" role="dialog" aria-modal="true" hidden>
+      <form id="classForm">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Class setup</p>
+            <h3 class="modal-title" id="classModalTitle">Add class group</h3>
+          </div>
+          <button class="icon-btn" type="button" data-close-modal aria-label="Close">Close</button>
+        </div>
+        <div class="modal-body">
+          <input id="classIdInput" type="hidden">
+          <div class="form-grid">
+            <label class="field">
+              <span>Class name</span>
+              <input id="classNameInput" type="text" maxlength="60" required>
+            </label>
+            <label class="field">
+              <span>Age range</span>
+              <input id="classAgeRangeInput" type="text" maxlength="40" placeholder="Ages 2-4">
+            </label>
+            <label class="field">
+              <span>Room</span>
+              <input id="classRoomInput" type="text" maxlength="40" placeholder="Hall A">
+            </label>
+            <label class="field">
+              <span>Capacity</span>
+              <input id="classCapacityInput" type="number" min="0" max="200" step="1">
+            </label>
+            <label class="field">
+              <span>Colour</span>
+              <input id="classColorInput" type="color">
+            </label>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-danger hidden" id="deleteClassBtn" type="button">Delete</button>
+          <button class="btn btn-secondary" type="button" data-close-modal>Cancel</button>
+          <button class="btn btn-primary" type="submit">Save class</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="modal" id="volunteerModal" role="dialog" aria-modal="true" hidden>
+      <form id="volunteerForm">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Volunteer setup</p>
+            <h3 class="modal-title" id="volunteerModalTitle">Add volunteer</h3>
+          </div>
+          <button class="icon-btn" type="button" data-close-modal aria-label="Close">Close</button>
+        </div>
+        <div class="modal-body">
+          <input id="volunteerIdInput" type="hidden">
+          <div class="form-grid">
+            <label class="field">
+              <span>Name</span>
+              <input id="volunteerNameInput" type="text" maxlength="60" required>
+            </label>
+            <label class="field">
+              <span>Role</span>
+              <input id="volunteerRoleInput" type="text" maxlength="50" placeholder="Check-in desk, class leader">
+            </label>
+            <label class="field">
+              <span>Phone</span>
+              <input id="volunteerPhoneInput" type="tel" maxlength="30">
+            </label>
+            <label class="field">
+              <span>Ministry group</span>
+              <input id="volunteerGroupInput" type="text" maxlength="50" placeholder="Little Lambs">
+            </label>
+          </div>
+          <label class="toggle-field">
+            <input id="volunteerActiveInput" type="checkbox" checked>
+            <span>Active volunteer</span>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-danger hidden" id="deleteVolunteerBtn" type="button">Delete</button>
+          <button class="btn btn-secondary" type="button" data-close-modal>Cancel</button>
+          <button class="btn btn-primary" type="submit">Save volunteer</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="modal" id="eventModal" role="dialog" aria-modal="true" hidden>
+      <form id="eventForm">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Event reminder</p>
+            <h3 class="modal-title" id="eventModalTitle">Add event</h3>
+          </div>
+          <button class="icon-btn" type="button" data-close-modal aria-label="Close">Close</button>
+        </div>
+        <div class="modal-body">
+          <input id="eventIdInput" type="hidden">
+          <div class="form-grid">
+            <label class="field">
+              <span>Title</span>
+              <input id="eventTitleInput" type="text" maxlength="70" required>
+            </label>
+            <label class="field">
+              <span>Date and time</span>
+              <input id="eventDateInput" type="datetime-local" required>
+            </label>
+            <label class="field">
+              <span>Location</span>
+              <input id="eventLocationInput" type="text" maxlength="70" placeholder="Main auditorium">
+            </label>
+            <label class="field">
+              <span>Audience</span>
+              <select id="eventAudienceInput">
+                <option value="all">All families</option>
+                <option value="volunteers">Volunteers</option>
+                <option value="parents">Parents</option>
+                <option value="leaders">Leaders</option>
+              </select>
+            </label>
+            <label class="field field-span-2">
+              <span>Description</span>
+              <textarea id="eventDescriptionInput" rows="3" placeholder="Reminder or event details"></textarea>
+            </label>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-danger hidden" id="deleteEventBtn" type="button">Delete</button>
+          <button class="btn btn-secondary" type="button" data-close-modal>Cancel</button>
+          <button class="btn btn-primary" type="submit">Save event</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="modal" id="pollModal" role="dialog" aria-modal="true" hidden>
+      <form id="pollForm">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Church poll</p>
+            <h3 class="modal-title" id="pollModalTitle">Create poll</h3>
+          </div>
+          <button class="icon-btn" type="button" data-close-modal aria-label="Close">Close</button>
+        </div>
+        <div class="modal-body">
+          <input id="pollIdInput" type="hidden">
+          <div class="form-grid">
+            <label class="field field-span-2">
+              <span>Title</span>
+              <input id="pollTitleInput" type="text" maxlength="80" required>
+            </label>
+            <label class="field field-span-2">
+              <span>Description</span>
+              <textarea id="pollDescriptionInput" rows="3" placeholder="What should members know before they vote?"></textarea>
+            </label>
+            <label class="field">
+              <span>Poll type</span>
+              <select id="pollTypeInput">
+                <option value="single">Single choice</option>
+                <option value="multiple">Multiple choice</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Visibility</span>
+              <select id="pollVisibilityInput">
+                <option value="all">All church members</option>
+                <option value="volunteers">Volunteers only</option>
+                <option value="parents">Parents only</option>
+                <option value="leaders">Ministry leaders</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Start date</span>
+              <input id="pollStartInput" type="date" required>
+            </label>
+            <label class="field">
+              <span>End date</span>
+              <input id="pollEndInput" type="date" required>
+            </label>
+            <label class="field">
+              <span>Status</span>
+              <select id="pollStatusInput">
+                <option value="draft">Draft</option>
+                <option value="active">Active</option>
+                <option value="closed">Closed</option>
+              </select>
+            </label>
+            <label class="field field-span-2">
+              <span>Options</span>
+              <textarea id="pollOptionsInput" rows="5" placeholder="One option per line" required></textarea>
+            </label>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn btn-danger hidden" id="deletePollBtn" type="button">Delete</button>
+          <button class="btn btn-secondary" type="button" data-close-modal>Cancel</button>
+          <button class="btn btn-primary" type="submit">Save poll</button>
+        </div>
+      </form>
+    </div>
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <input id="restoreBackupInput" class="file-picker-proxy" type="file" accept="application/json,.json">
 
-  <script src="vendor/capacitor.js" defer></script>
-  <script src="vendor/chart.umd.min.js" defer></script>
-  <script src="vendor/xlsx.full.min.js" defer></script>
-  <script src="vendor/jspdf.umd.min.js" defer></script>
-  <script src="vendor/jspdf.plugin.autotable.min.js" defer></script>
-  <script src="js/utils.js" defer></script>
-  <script src="js/storage.js" defer></script>
-  <script src="js/trips.js" defer></script>
-  <script src="js/expenses.js" defer></script>
-  <script src="js/customers.js" defer></script>
-  <script src="js/reports.js" defer></script>
-  <script src="js/settings.js" defer></script>
-  <script src="js/invoices.js" defer></script>
-  <script src="js/app.js" defer></script>
+  <script src="vendor/capacitor.js"></script>
+  <script src="vendor/chart.umd.min.js"></script>
+  <script src="vendor/xlsx.full.min.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/children.js"></script>
+  <script src="js/checkin.js"></script>
+  <script src="js/ministry.js"></script>
+  <script src="js/polls.js"></script>
+  <script src="js/reports.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
+
+
+

@@ -1,4 +1,4 @@
-const CACHE_NAME = "insight-ride-v2.3.0";
+const CACHE_NAME = "agape-kids-v1.0.0";
 const OFFLINE_URL = "./index.html";
 const PRECACHE_URLS = [
   "./",
@@ -8,17 +8,18 @@ const PRECACHE_URLS = [
   "./vendor/capacitor.js",
   "./vendor/chart.umd.min.js",
   "./vendor/xlsx.full.min.js",
-  "./vendor/jspdf.umd.min.js",
-  "./vendor/jspdf.plugin.autotable.min.js",
   "./js/utils.js",
   "./js/storage.js",
-  "./js/trips.js",
-  "./js/expenses.js",
-  "./js/customers.js",
+  "./js/api.js",
+  "./js/dashboard.js",
+  "./js/children.js",
+  "./js/checkin.js",
+  "./js/ministry.js",
+  "./js/polls.js",
   "./js/reports.js",
   "./js/settings.js",
-  "./js/invoices.js",
   "./js/app.js",
+  "./icons/agape-logo.svg",
   "./icons/icon-72x72.png",
   "./icons/icon-96x96.png",
   "./icons/icon-128x128.png",
@@ -26,7 +27,7 @@ const PRECACHE_URLS = [
   "./icons/icon-152x152.png",
   "./icons/icon-192x192.png",
   "./icons/icon-384x384.png",
-  "./icons/icon-512x512.png",
+  "./icons/icon-512x512.png"
 ];
 
 self.addEventListener("install", (event) => {

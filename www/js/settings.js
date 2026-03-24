@@ -1,44 +1,56 @@
-window.TaxiFareApp = window.TaxiFareApp || {};
+﻿window.AgapeKidsApp = window.AgapeKidsApp || {};
 
-window.TaxiFareApp.createSettingsModule = (app) => {
+window.AgapeKidsApp.createSettingsModule = (app) => {
   const { utils } = app;
   const systemThemeQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
 
   const refs = {
     form: document.getElementById("settingsForm"),
-    driverName: document.getElementById("settingsDriverName"),
-    businessName: document.getElementById("settingsBusinessName"),
-    driverPhone: document.getElementById("settingsDriverPhone"),
-    driverEmail: document.getElementById("settingsDriverEmail"),
-    vehiclePlate: document.getElementById("settingsVehiclePlate"),
-    vatNumber: document.getElementById("settingsVatNumber"),
-    businessAddress: document.getElementById("settingsBusinessAddress"),
+    churchName: document.getElementById("settingsChurchName"),
+    campus: document.getElementById("settingsCampus"),
+    logoUrl: document.getElementById("settingsLogoUrl"),
+    currentUser: document.getElementById("settingsCurrentUser"),
     theme: document.getElementById("settingsTheme"),
-    currency: document.getElementById("settingsCurrency"),
+    language: document.getElementById("settingsLanguage"),
     role: document.getElementById("settingsRole"),
-    invoiceTheme: document.getElementById("settingsInvoiceTheme"),
-    invoicePrefix: document.getElementById("settingsInvoicePrefix"),
-    paymentTerms: document.getElementById("settingsPaymentTerms"),
-    invoiceNotes: document.getElementById("settingsInvoiceNotes"),
+    followUpWindow: document.getElementById("settingsFollowUpWindow"),
+    appScriptUrl: document.getElementById("settingsAppScriptUrl"),
+    autoSync: document.getElementById("settingsAutoSync"),
+    pickupRequired: document.getElementById("settingsPickupRequired"),
+    allowOverride: document.getElementById("settingsAllowOverride"),
+    welcomeMessage: document.getElementById("settingsWelcomeMessage"),
+    checkoutMessage: document.getElementById("settingsCheckoutMessage"),
     exportBackup: document.getElementById("exportBackupBtn"),
     restoreBackup: document.getElementById("restoreBackupBtn"),
+    restoreInput: document.getElementById("restoreBackupInput"),
     clearData: document.getElementById("clearDataBtn"),
-    safetyBackupToggle: document.getElementById("safetyBackupToggle"),
+    testConnection: document.getElementById("testConnectionBtn"),
+    syncNow: document.getElementById("syncNowBtn"),
     storageSummary: document.getElementById("storageSummary"),
-    permissionNote: document.getElementById("rolePermissionNote"),
+    syncSummary: document.getElementById("syncSummary"),
+    rolePermissionNote: document.getElementById("rolePermissionNote"),
     roleBadge: document.getElementById("roleBadge"),
     connectionBadge: document.getElementById("connectionBadge"),
     themeToggle: document.getElementById("themeToggleBtn"),
-    restoreInput: document.getElementById("restoreBackupInput"),
+    installButton: document.getElementById("installAppBtn"),
+    brandKicker: document.getElementById("brandKicker"),
+    brandSubtitle: document.getElementById("brandSubtitle"),
+    brandLogo: document.getElementById("brandLogo"),
+    loaderLogo: document.getElementById("loaderLogo"),
   };
+
+  let installPrompt = null;
 
   function init() {
     refs.form.addEventListener("submit", onSubmit);
     refs.exportBackup.addEventListener("click", exportBackup);
     refs.restoreBackup.addEventListener("click", openRestorePicker);
     refs.restoreInput.addEventListener("change", onRestoreSelected);
-    refs.clearData.addEventListener("click", onClearData);
+    refs.clearData.addEventListener("click", clearData);
+    refs.testConnection.addEventListener("click", testConnection);
+    refs.syncNow.addEventListener("click", syncNow);
     refs.themeToggle.addEventListener("click", toggleThemeQuick);
+    refs.installButton.addEventListener("click", installApp);
 
     if (systemThemeQuery?.addEventListener) {
       systemThemeQuery.addEventListener("change", () => {
@@ -48,19 +60,22 @@ window.TaxiFareApp.createSettingsModule = (app) => {
       });
     }
 
-    window.addEventListener("online", renderConnectionBadge);
-    window.addEventListener("offline", renderConnectionBadge);
+    window.addEventListener("online", renderChrome);
+    window.addEventListener("offline", renderChrome);
+    window.addEventListener("beforeinstallprompt", (event) => {
+      event.preventDefault();
+      installPrompt = event;
+      refs.installButton.hidden = false;
+    });
   }
 
   function resolvedTheme(theme) {
     if (theme === "dark") {
       return "dark";
     }
-
     if (theme === "light") {
       return "light";
     }
-
     return systemThemeQuery?.matches ? "dark" : "light";
   }
 
@@ -69,106 +84,99 @@ window.TaxiFareApp.createSettingsModule = (app) => {
     document.documentElement.setAttribute("data-theme", nextTheme);
     const themeMeta = document.querySelector('meta[name="theme-color"]');
     if (themeMeta) {
-      themeMeta.setAttribute("content", nextTheme === "dark" ? "#050e1d" : "#0a1628");
+      themeMeta.setAttribute("content", nextTheme === "dark" ? "#152445" : "#234fb8");
     }
     refs.themeToggle.textContent = nextTheme === "dark" ? "Light" : "Dark";
   }
 
-  function toggleThemeQuick() {
-    const currentSetting = app.store.peek().settings.theme;
-    const currentResolved = resolvedTheme(currentSetting);
-    const nextTheme = currentResolved === "dark" ? "light" : "dark";
-
-    app.store.update((draft) => {
-      draft.settings.theme = nextTheme;
-      return draft;
-    });
-
-    app.ui.toast(`Theme set to ${nextTheme}.`, "success");
-  }
-
-  function renderConnectionBadge() {
-    refs.connectionBadge.textContent = navigator.onLine ? "Online" : "Offline ready";
-  }
-
-  function openRestorePicker() {
-    try {
-      utils.openFilePicker(refs.restoreInput);
-    } catch (error) {
-      app.ui.toast("Backup import could not be opened on this device.", "warning");
-    }
-  }
-
-  function describeExportResult(result, fallbackCopy) {
-    if (result?.method === "native-save") {
-      return "saved to your device";
+  function connectionText() {
+    if (!navigator.onLine) {
+      return "Offline ready";
     }
 
-    if (result?.method === "native-share" || result?.method === "web-share") {
-      return "opened in the share sheet";
+    const state = app.store.peek();
+    if (state.syncQueue.length) {
+      return `${state.syncQueue.length} waiting to sync`;
     }
 
-    if (result?.method === "native-share-fallback") {
-      return fallbackCopy || "opened in the share sheet";
+    if (state.settings.appScriptUrl && state.settings.lastSyncAt) {
+      return `Synced ${utils.formatTime(state.settings.lastSyncAt, state.settings.language)}`;
     }
 
-    if (result?.method === "download") {
-      return "downloaded";
+    if (state.settings.appScriptUrl) {
+      return "Online";
     }
 
-    if (result?.method === "cancelled") {
-      return "cancelled";
-    }
-
-    return "exported";
+    return "Online local mode";
   }
 
   function renderStorageSummary() {
     const summary = app.store.getStorageSummary();
     refs.storageSummary.innerHTML = `
       <div>Schema version: <strong>${utils.escapeHtml(String(summary.schemaVersion))}</strong></div>
-      <div>Trips: <strong>${utils.escapeHtml(String(summary.trips))}</strong></div>
-      <div>Expenses: <strong>${utils.escapeHtml(String(summary.expenses))}</strong></div>
-      <div>Customers: <strong>${utils.escapeHtml(String(summary.customers))}</strong></div>
-      <div>Invoices: <strong>${utils.escapeHtml(String(summary.invoices))}</strong></div>
-      <div>Estimated local data size: <strong>${utils.escapeHtml(utils.formatBytes(summary.estimatedBytes))}</strong></div>
+      <div>Children: <strong>${utils.escapeHtml(String(summary.children))}</strong></div>
+      <div>Attendance records: <strong>${utils.escapeHtml(String(summary.attendance))}</strong></div>
+      <div>Class groups: <strong>${utils.escapeHtml(String(summary.classes))}</strong></div>
+      <div>Polls: <strong>${utils.escapeHtml(String(summary.polls))}</strong></div>
+      <div>Queued sync changes: <strong>${utils.escapeHtml(String(summary.queue))}</strong></div>
+      <div>Estimated local size: <strong>${utils.escapeHtml(utils.formatBytes(summary.estimatedBytes))}</strong></div>
     `;
   }
 
-  function renderRoleNote(role) {
-    const permissions = utils.ROLE_PERMISSIONS[role] || utils.ROLE_PERMISSIONS.owner;
-    const lines = [
-      `${utils.ROLE_LABELS[role]} mode is active.`,
-      permissions.customers ? "Customer management is available." : "Customer management is hidden for this role.",
-      permissions.invoices ? "Invoice tools are available." : "Invoice tools are hidden for this role.",
-      permissions.destructiveData ? "Restore and clear-data actions are enabled." : "Restore and clear-data actions are protected.",
-    ];
+  function renderSyncSummary() {
+    const settings = app.store.peek().settings;
+    refs.syncSummary.innerHTML = `
+      <div><strong>Status:</strong> ${utils.escapeHtml(settings.lastSyncStatus || "Offline ready")}</div>
+      <div><strong>Last sync:</strong> ${utils.escapeHtml(settings.lastSyncAt ? utils.formatDateTime(settings.lastSyncAt, settings.language) : "Not synced yet")}</div>
+      <div><strong>Error:</strong> ${utils.escapeHtml(settings.lastSyncError || "None")}</div>
+    `;
+  }
 
-    refs.permissionNote.innerHTML = lines.map((line) => `<div>${utils.escapeHtml(line)}</div>`).join("");
-    refs.roleBadge.textContent = utils.ROLE_LABELS[role] || "Owner";
+  function renderRoleNote() {
+    const role = app.store.peek().settings.role;
+    const permissions = utils.ROLE_PERMISSIONS[role] || utils.ROLE_PERMISSIONS.admin;
+    refs.rolePermissionNote.innerHTML = [
+      `${utils.ROLE_LABELS[role]} mode is active.`,
+      permissions.reports ? "Reports remain visible." : "Reports are hidden for this role.",
+      permissions.ministry ? "Class and volunteer setup is available." : "Ministry setup is hidden for this role.",
+      permissions.managePolls ? "Poll creation is available." : "Only voting is available.",
+      permissions.destructiveData ? "Clear-data tools are enabled." : "Destructive tools stay protected.",
+    ].map((line) => `<div>${utils.escapeHtml(line)}</div>`).join("");
+  }
+
+  function renderChrome() {
+    const settings = app.store.peek().settings;
+    applyTheme(settings.theme);
+    utils.applyCopy(settings.language);
+    document.title = `${utils.APP_NAME} | ${settings.churchName || utils.CHURCH_NAME}`;
+    refs.roleBadge.textContent = utils.ROLE_LABELS[settings.role] || "Admin";
+    refs.connectionBadge.textContent = connectionText();
+    refs.brandKicker.textContent = `${settings.churchName || utils.CHURCH_NAME}  |  ${settings.campus || utils.CHURCH_LOCATION}`;
+    refs.brandSubtitle.textContent = "Warm, safe children's church care for every Sunday service.";
+    refs.brandLogo.src = settings.logoUrl || "icons/agape-logo.svg";
+    refs.loaderLogo.src = settings.logoUrl || "icons/agape-logo.svg";
+    renderStorageSummary();
+    renderSyncSummary();
+    renderRoleNote();
   }
 
   function render() {
     const settings = app.store.peek().settings;
-    refs.driverName.value = settings.driverName || "";
-    refs.businessName.value = settings.businessName || "";
-    refs.driverPhone.value = settings.driverPhone || "";
-    refs.driverEmail.value = settings.driverEmail || "";
-    refs.vehiclePlate.value = settings.vehiclePlate || "";
-    refs.vatNumber.value = settings.vatNumber || "";
-    refs.businessAddress.value = settings.businessAddress || "";
+    refs.churchName.value = settings.churchName || "";
+    refs.campus.value = settings.campus || "";
+    refs.logoUrl.value = settings.logoUrl || "";
+    refs.currentUser.value = settings.currentUser || "";
     refs.theme.value = settings.theme || "system";
-    refs.currency.value = settings.currency || "ZAR";
-    refs.role.value = settings.role || "owner";
-    refs.invoiceTheme.value = settings.invoiceTheme || "modern";
-    refs.invoicePrefix.value = settings.invoicePrefix || "IR";
-    refs.paymentTerms.value = settings.paymentTerms || "";
-    refs.invoiceNotes.value = settings.invoiceNotes || "";
-
-    applyTheme(settings.theme);
-    renderConnectionBadge();
-    renderRoleNote(settings.role);
-    renderStorageSummary();
+    refs.language.value = settings.language || "en";
+    refs.role.value = settings.role || "admin";
+    refs.followUpWindow.value = settings.followUpWindowDays || 14;
+    refs.appScriptUrl.value = settings.appScriptUrl || "";
+    refs.autoSync.checked = Boolean(settings.autoSync);
+    refs.pickupRequired.checked = Boolean(settings.pickupCodeRequired);
+    refs.allowOverride.checked = Boolean(settings.allowAdminOverride);
+    refs.welcomeMessage.value = settings.welcomeMessage || "";
+    refs.checkoutMessage.value = settings.checkoutMessage || "";
+    renderChrome();
   }
 
   function onSubmit(event) {
@@ -182,24 +190,25 @@ window.TaxiFareApp.createSettingsModule = (app) => {
       app.store.update((draft) => {
         draft.settings = {
           ...draft.settings,
-          driverName: utils.stringFrom(refs.driverName.value),
-          businessName: utils.stringFrom(refs.businessName.value),
-          driverPhone: utils.stringFrom(refs.driverPhone.value),
-          driverEmail: utils.stringFrom(refs.driverEmail.value),
-          vehiclePlate: utils.stringFrom(refs.vehiclePlate.value),
-          vatNumber: utils.stringFrom(refs.vatNumber.value),
-          businessAddress: utils.stringFrom(refs.businessAddress.value),
+          churchName: utils.stringFrom(refs.churchName.value, utils.CHURCH_NAME),
+          campus: utils.stringFrom(refs.campus.value, utils.CHURCH_LOCATION),
+          logoUrl: utils.stringFrom(refs.logoUrl.value, "icons/agape-logo.svg") || "icons/agape-logo.svg",
+          currentUser: utils.stringFrom(refs.currentUser.value, "Agape Team"),
           theme: refs.theme.value,
-          currency: refs.currency.value,
+          language: refs.language.value,
           role: refs.role.value,
-          invoiceTheme: refs.invoiceTheme.value,
-          invoicePrefix: utils.stringFrom(refs.invoicePrefix.value, "IR").slice(0, 10) || "IR",
-          paymentTerms: utils.stringFrom(refs.paymentTerms.value),
-          invoiceNotes: utils.stringFrom(refs.invoiceNotes.value),
+          followUpWindowDays: Math.max(1, utils.integerFrom(refs.followUpWindow.value, 14)),
+          appScriptUrl: utils.stringFrom(refs.appScriptUrl.value),
+          autoSync: refs.autoSync.checked,
+          pickupCodeRequired: refs.pickupRequired.checked,
+          allowAdminOverride: refs.allowOverride.checked,
+          welcomeMessage: utils.stringFrom(refs.welcomeMessage.value),
+          checkoutMessage: utils.stringFrom(refs.checkoutMessage.value),
         };
         return draft;
       });
 
+      app.syncPermissions();
       app.ui.toast("Settings saved.", "success");
     } catch (error) {
       app.ui.toast(error.message || "Settings could not be saved.", "warning");
@@ -207,8 +216,6 @@ window.TaxiFareApp.createSettingsModule = (app) => {
   }
 
   async function exportBackup() {
-    refs.exportBackup.disabled = true;
-
     try {
       const payload = await app.store.exportBackup();
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
@@ -219,82 +226,55 @@ window.TaxiFareApp.createSettingsModule = (app) => {
         title: `${utils.APP_NAME} backup`,
         text: `${utils.APP_NAME} backup export`,
       });
-
-      if (result.method === "cancelled") {
-        app.ui.toast("Backup export cancelled.", "warning");
-        return;
+      if (result.method !== "cancelled") {
+        app.ui.toast("Backup exported.", "success");
       }
-
-      app.ui.toast(`Backup ${describeExportResult(result, "opened in the share sheet so you can save it elsewhere")}.`, "success");
     } catch (error) {
       app.ui.toast(error.message || "Backup export failed.", "warning");
-    } finally {
-      refs.exportBackup.disabled = false;
     }
+  }
+
+  function openRestorePicker() {
+    utils.openFilePicker(refs.restoreInput);
   }
 
   async function onRestoreSelected(event) {
     const file = event.target.files?.[0];
     refs.restoreInput.value = "";
-
     if (!file) {
       return;
     }
 
     try {
-      const content = await utils.readFileAsText(file);
+      const content = await file.text();
       const parsed = JSON.parse(content);
       const shouldContinue = await app.ui.confirm({
         title: "Restore backup",
-        message: "This will replace the current local database. Continue with restore?",
-        confirmLabel: "Restore data",
+        message: "This replaces the current local Agape Kids data on this device. Continue?",
+        confirmLabel: "Restore",
       });
-
       if (!shouldContinue) {
         return;
       }
 
-      const result = await app.store.restoreBackup(parsed, {
-        createSafetyBackup: refs.safetyBackupToggle.checked,
-      });
-
-      let message = "Backup restored successfully.";
-      if (result.safetyBackup) {
-        const blob = new Blob([JSON.stringify(result.safetyBackup, null, 2)], { type: "application/json" });
-        const exportResult = await utils.exportFile({
-          blob,
-          fileName: `${utils.APP_SLUG}-safety-backup-${utils.toLocalDateInputValue(new Date())}.json`,
-          mode: "download",
-          title: `${utils.APP_NAME} safety backup`,
-          text: `${utils.APP_NAME} safety backup export`,
-        });
-
-        if (exportResult.method === "cancelled") {
-          message = "Backup restored. Safety backup export was cancelled.";
-        } else {
-          message = `Backup restored. Safety backup ${describeExportResult(exportResult, "opened in the share sheet so you can store it safely")}.`;
-        }
-      }
-
-      app.ui.toast(message, "success");
+      await app.store.restoreBackup(parsed);
+      app.ui.toast("Backup restored.", "success");
     } catch (error) {
-      app.ui.toast(error.message || "Restore failed. Check that the JSON file is valid.", "warning");
+      app.ui.toast(error.message || "Backup restore failed.", "warning");
     }
   }
 
-  async function onClearData() {
-    const canDelete = utils.ROLE_PERMISSIONS[app.store.peek().settings.role]?.destructiveData;
-    if (!canDelete) {
-      app.ui.toast("This role cannot clear all data. Switch to Owner mode first.", "warning");
+  async function clearData() {
+    if (!app.can("destructiveData")) {
+      app.ui.toast("Switch to Admin mode to clear all data.", "warning");
       return;
     }
 
     const shouldClear = await app.ui.confirm({
-      title: "Clear all data",
-      message: "This removes trips, expenses, customers, invoices, and stored receipts from this device.",
+      title: "Clear local data",
+      message: "This removes children, attendance, polls, and settings stored on this device.",
       confirmLabel: "Clear data",
     });
-
     if (!shouldClear) {
       return;
     }
@@ -303,10 +283,73 @@ window.TaxiFareApp.createSettingsModule = (app) => {
     app.ui.toast("All local data cleared.", "success");
   }
 
+  async function testConnection() {
+    try {
+      const result = await app.api.testConnection();
+      app.store.update((draft) => {
+        draft.settings.lastSyncStatus = result.message || "Connection successful.";
+        draft.settings.lastSyncError = "";
+        return draft;
+      });
+      app.ui.toast("Apps Script connection looks good.", "success");
+    } catch (error) {
+      app.store.update((draft) => {
+        draft.settings.lastSyncError = error.message || "Connection failed.";
+        draft.settings.lastSyncStatus = "Connection test failed.";
+        return draft;
+      });
+      app.ui.toast(error.message || "Connection test failed.", "warning");
+    }
+  }
+
+  async function syncNow() {
+    if (!app.api.isConfigured()) {
+      app.ui.toast("Add an Apps Script URL first.", "warning");
+      return;
+    }
+
+    try {
+      const result = await app.api.flushQueue();
+      app.ui.toast(`Sync finished. ${result.synced} change${result.synced === 1 ? "" : "s"} synced.`, "success");
+    } catch (error) {
+      app.store.update((draft) => {
+        draft.settings.lastSyncError = error.message || "Sync failed.";
+        draft.settings.lastSyncStatus = "Sync failed.";
+        return draft;
+      });
+      app.ui.toast(error.message || "Sync failed.", "warning");
+    }
+  }
+
+  function toggleThemeQuick() {
+    const current = resolvedTheme(app.store.peek().settings.theme);
+    const nextTheme = current === "dark" ? "light" : "dark";
+    app.store.update((draft) => {
+      draft.settings.theme = nextTheme;
+      return draft;
+    });
+    app.ui.toast(`Theme set to ${nextTheme}.`, "success");
+  }
+
+  async function installApp() {
+    if (!installPrompt) {
+      app.ui.toast("Install prompt is not available on this device yet.", "info");
+      return;
+    }
+
+    await installPrompt.prompt();
+    installPrompt = null;
+    refs.installButton.hidden = true;
+  }
+
   return {
     applyTheme,
     init,
     render,
+    renderChrome,
     toggleThemeQuick,
   };
 };
+
+
+

@@ -1,29 +1,35 @@
-window.TaxiFareApp = window.TaxiFareApp || {};
+﻿window.AgapeKidsApp = window.AgapeKidsApp || {};
 
-window.TaxiFareApp.createReportsModule = (app) => {
+window.AgapeKidsApp.createReportsModule = (app) => {
   const { utils } = app;
+
+  let trendChart = null;
+  let classChart = null;
 
   const refs = {
     from: document.getElementById("reportFromDate"),
     to: document.getElementById("reportToDate"),
-    customer: document.getElementById("reportCustomerFilter"),
     presetChips: document.getElementById("reportPresetChips"),
     topStats: document.getElementById("reportTopStats"),
-    metrics: document.getElementById("reportMetrics"),
-    breakdowns: document.getElementById("reportBreakdowns"),
+    trendCanvas: document.getElementById("attendanceTrendChart"),
+    classCanvas: document.getElementById("classBreakdownChart"),
+    followUps: document.getElementById("reportFollowUpList"),
+    birthdays: document.getElementById("reportBirthdayList"),
+    pollSummary: document.getElementById("reportPollSummaryList"),
     exportButton: document.getElementById("exportWorkbookBtn"),
+    printButton: document.getElementById("printSundaySummaryBtn"),
   };
 
   function init() {
-    const initialRange = utils.buildPresetRange("month");
-    refs.from.value = initialRange.from;
-    refs.to.value = initialRange.to;
+    const range = utils.buildPresetRange("month");
+    refs.from.value = range.from;
+    refs.to.value = range.to;
 
     refs.from.addEventListener("change", render);
     refs.to.addEventListener("change", render);
-    refs.customer.addEventListener("change", render);
     refs.presetChips.addEventListener("click", onPresetClick);
     refs.exportButton.addEventListener("click", exportWorkbook);
+    refs.printButton.addEventListener("click", printSummary);
   }
 
   function onPresetClick(event) {
@@ -41,305 +47,324 @@ window.TaxiFareApp.createReportsModule = (app) => {
     render();
   }
 
-  function refreshCustomerOptions() {
-    app.populateCustomerSelect(refs.customer, {
-      allowAll: true,
-      allLabel: "All customers",
-      includeInactive: true,
-    });
-  }
-
-  function getReportState() {
-    refreshCustomerOptions();
-
-    const from = refs.from.value;
-    const to = refs.to.value;
-    const customerId = refs.customer.value || "all";
-    const state = app.store.peek();
-    const fromDate = utils.toDate(from);
-    const toDate = utils.toDate(to);
-    if ((from && !fromDate) || (to && !toDate) || (fromDate && toDate && fromDate.getTime() > toDate.getTime())) {
-      return {
-        customerId,
-        expenses: [],
-        from,
-        income: 0,
-        invalidRange: true,
-        net: 0,
-        to,
-        totalExpenses: 0,
-        trips: [],
-      };
-    }
-
-    const filteredTrips = state.trips.filter((trip) => {
-      const inRange = utils.isWithinRange(trip.dateTime, from, to);
-      const matchesCustomer = customerId === "all" || trip.customerId === customerId;
-      return inRange && matchesCustomer;
-    });
-    const filteredExpenses = customerId === "all"
-      ? state.expenses.filter((expense) => utils.isWithinRange(expense.date, from, to))
-      : [];
-    const income = utils.sumBy(filteredTrips, (trip) => utils.tripTotal(trip));
-    const totalExpenses = utils.sumBy(filteredExpenses, (expense) => utils.expenseTotal(expense));
-    const net = income - totalExpenses;
-
+  function getRange() {
     return {
-      customerId,
-      expenses: filteredExpenses,
-      from,
-      income,
-      invalidRange: false,
-      net,
-      to,
-      totalExpenses,
-      trips: filteredTrips,
+      from: refs.from.value,
+      to: refs.to.value,
     };
   }
 
-  function renderTopStats(reportState) {
-    const currency = app.currency();
+  function getReportState() {
+    const range = getRange();
+    const attendance = app.store.peek().attendance.filter((record) => utils.isWithinRange(record.serviceDate, range.from, range.to));
+    const checkedIn = attendance.filter((record) => record.status === "checked-in" || record.status === "checked-out");
+    const checkedOut = attendance.filter((record) => record.status === "checked-out");
+    const firstVisitors = attendance.filter((record) => record.firstVisit);
+    const absent = app.getAbsentChildren();
+    const activePolls = app.store.peek().polls.filter((poll) => poll.status === "active");
+    const birthdays = app.getUpcomingBirthdays();
+    const classSummary = app.getClassSummary(range.from, range.to);
 
+    return {
+      range,
+      attendance,
+      checkedIn,
+      checkedOut,
+      firstVisitors,
+      absent,
+      activePolls,
+      birthdays,
+      classSummary,
+    };
+  }
+
+  function renderTopStats(state) {
+    const streaks = app.getTopAttendanceStreaks();
     refs.topStats.innerHTML = [
-      { label: "Trips", value: String(reportState.trips.length), foot: "Trips in range" },
-      { label: "Income", value: utils.formatCurrency(reportState.income, currency), foot: "Fares plus tips" },
-      { label: "Expenses", value: utils.formatCurrency(reportState.totalExpenses, currency), foot: reportState.customerId === "all" ? "Operating spend" : "Customer view excludes expenses" },
-      { label: "Net profit", value: utils.formatCurrency(reportState.net, currency), foot: "Range result" },
-    ].map((item, index) => `
-      <article class="stat-card ${index === 1 ? "stat-card-success" : index === 2 ? "stat-card-warning" : index === 3 ? "stat-card-primary" : ""}">
-        <p class="stat-label">${utils.escapeHtml(item.label)}</p>
-        <h3 class="stat-value">${utils.escapeHtml(item.value)}</h3>
+      { label: "Checked in", value: state.checkedIn.length, foot: "Attendance records in range" },
+      { label: "Checked out", value: state.checkedOut.length, foot: "Pickups fully completed" },
+      { label: "First visits", value: state.firstVisitors.length, foot: "New families welcomed" },
+      { label: "Follow-up list", value: state.absent.length, foot: "Children needing contact" },
+      { label: "Class groups", value: state.classSummary.length, foot: "Visible class participation" },
+      { label: "Best streak", value: streaks[0]?.streak || 0, foot: streaks[0] ? `${utils.buildChildDisplayName(streaks[0].child)}` : "No streak yet" },
+    ].map((item) => `
+      <article class="stat-card">
+        <span class="stat-label">${utils.escapeHtml(item.label)}</span>
+        <strong class="stat-value">${utils.escapeHtml(String(item.value))}</strong>
         <p class="stat-foot">${utils.escapeHtml(item.foot)}</p>
       </article>
     `).join("");
   }
 
-  function renderMetrics(reportState) {
-    const currency = app.currency();
-    const totalDistance = utils.sumBy(reportState.trips, (trip) => trip.distanceKm);
-    const totalHours = utils.sumBy(reportState.trips, (trip) => trip.durationMin / 60);
-    const avgTrip = reportState.trips.length ? reportState.income / reportState.trips.length : 0;
-    const perKm = totalDistance ? reportState.income / totalDistance : 0;
-    const perHour = totalHours ? reportState.income / totalHours : 0;
+  function renderTrendChart(state) {
+    if (!window.Chart || !refs.trendCanvas) {
+      return;
+    }
 
-    const routeTotals = Object.entries(utils.groupBy(reportState.trips, (trip) => utils.buildRouteLabel(trip))).map(([route, trips]) => ({
-      label: route,
-      value: utils.sumBy(trips, (trip) => utils.tripTotal(trip)),
-    }));
-    const topRoute = utils.pickTopEntry(routeTotals);
+    const grouped = utils.groupBy(state.attendance, (record) => record.serviceDate);
+    const labels = Object.keys(grouped).sort();
+    const data = labels.map((label) => grouped[label].filter((record) => record.status !== "absent").length);
 
-    const expenseTotals = Object.entries(utils.groupBy(reportState.expenses, (expense) => utils.EXPENSE_CATEGORIES[expense.category] || "Other")).map(([label, expenses]) => ({
-      label,
-      value: utils.sumBy(expenses, (expense) => utils.expenseTotal(expense)),
-    }));
-    const topExpense = utils.pickTopEntry(expenseTotals);
+    if (trendChart) {
+      trendChart.destroy();
+    }
 
-    const dayTotals = Object.entries(utils.groupBy(reportState.trips, (trip) => utils.toLocalDateInputValue(trip.dateTime))).map(([day, trips]) => ({
-      label: day,
-      value: utils.sumBy(trips, (trip) => utils.tripTotal(trip)),
-    }));
-    const bestDay = utils.pickTopEntry(dayTotals);
-
-    refs.metrics.innerHTML = [
-      { label: "Average per trip", value: utils.formatCurrency(avgTrip, currency) },
-      { label: "Earnings per km", value: perKm ? utils.formatCurrency(perKm, currency) : "No distance yet" },
-      { label: "Earnings per hour", value: perHour ? utils.formatCurrency(perHour, currency) : "No duration yet" },
-      { label: "Most profitable route", value: topRoute ? topRoute.label : "No route data yet" },
-      { label: "Highest expense category", value: topExpense ? `${topExpense.label} (${utils.formatCurrency(topExpense.value, currency)})` : "No expenses in view" },
-      { label: "Best earning day", value: bestDay ? `${utils.formatDate(bestDay.label)} (${utils.formatCurrency(bestDay.value, currency)})` : "No day data yet" },
-    ].map((item) => `
-      <article class="metric-card">
-        <span class="metric-label">${utils.escapeHtml(item.label)}</span>
-        <strong class="metric-value">${utils.escapeHtml(item.value)}</strong>
-      </article>
-    `).join("");
+    trendChart = new window.Chart(refs.trendCanvas, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [{
+          label: "Attendance",
+          data,
+          borderColor: "#3568dc",
+          backgroundColor: "rgba(53, 104, 220, 0.16)",
+          fill: true,
+          tension: 0.3,
+        }],
+      },
+      options: {
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+      },
+    });
   }
 
-  function renderBreakdowns(reportState) {
-    const currency = app.currency();
-    const paymentTotals = {
-      cash: utils.sumBy(reportState.trips.filter((trip) => trip.paymentMethod === "cash"), (trip) => utils.tripTotal(trip)),
-      card: utils.sumBy(reportState.trips.filter((trip) => trip.paymentMethod === "card"), (trip) => utils.tripTotal(trip)),
-      mobile: utils.sumBy(reportState.trips.filter((trip) => trip.paymentMethod === "mobile"), (trip) => utils.tripTotal(trip)),
-      mixed: utils.sumBy(reportState.trips.filter((trip) => trip.paymentMethod === "mixed"), (trip) => utils.tripTotal(trip)),
-    };
-
-    const routeTotals = Object.entries(utils.groupBy(reportState.trips, (trip) => utils.buildRouteLabel(trip)))
-      .map(([label, trips]) => ({ label, value: utils.sumBy(trips, (trip) => utils.tripTotal(trip)) }))
-      .sort((left, right) => right.value - left.value)
-      .slice(0, 3);
-
-    const expenseTotals = Object.entries(utils.groupBy(reportState.expenses, (expense) => utils.EXPENSE_CATEGORIES[expense.category] || "Other"))
-      .map(([label, expenses]) => ({ label, value: utils.sumBy(expenses, (expense) => utils.expenseTotal(expense)) }))
-      .sort((left, right) => right.value - left.value)
-      .slice(0, 3);
-
-    const items = [
-      ...routeTotals.map((item) => ({ label: `Route: ${item.label}`, value: utils.formatCurrency(item.value, currency) })),
-      ...Object.entries(paymentTotals)
-        .filter(([, value]) => value > 0)
-        .map(([label, value]) => ({ label: `Payments: ${utils.PAYMENT_METHODS[label]}`, value: utils.formatCurrency(value, currency) })),
-      ...expenseTotals.map((item) => ({ label: `Expense: ${item.label}`, value: utils.formatCurrency(item.value, currency) })),
-    ];
-
-    if (reportState.invalidRange) {
-      refs.breakdowns.innerHTML = `
-        <div class="empty-state empty-state-compact">
-          <h3>Invalid date range</h3>
-          <p>The From date must be on or before the To date.</p>
-        </div>
-      `;
+  function renderClassChart(state) {
+    if (!window.Chart || !refs.classCanvas) {
       return;
     }
 
-    if (!items.length) {
-      refs.breakdowns.innerHTML = `
-        <div class="empty-state empty-state-compact">
-          <h3>No report data yet</h3>
-          <p>Change the date range or log more trips and expenses.</p>
-        </div>
-      `;
+    if (classChart) {
+      classChart.destroy();
+    }
+
+    classChart = new window.Chart(refs.classCanvas, {
+      type: "doughnut",
+      data: {
+        labels: state.classSummary.map((entry) => entry.name),
+        datasets: [{
+          data: state.classSummary.map((entry) => entry.count),
+          backgroundColor: state.classSummary.map((entry) => entry.color),
+          borderWidth: 0,
+        }],
+      },
+      options: {
+        maintainAspectRatio: false,
+        plugins: { legend: { position: "bottom" } },
+      },
+    });
+  }
+
+  function renderFollowUps(state) {
+    if (!state.absent.length) {
+      refs.followUps.innerHTML = `<div class="empty-state"><h3>No follow-up list</h3><p>Children missing today will appear here when follow-up is needed.</p></div>`;
       return;
     }
 
-    refs.breakdowns.innerHTML = items.map((item) => `
-      <div class="breakdown-item">
-        <span>${utils.escapeHtml(item.label)}</span>
-        <strong>${utils.escapeHtml(item.value)}</strong>
+    refs.followUps.innerHTML = state.absent.map((entry) => `
+      <div class="list-row">
+        <div class="list-row-main">
+          <p class="list-row-title">${utils.escapeHtml(utils.buildChildDisplayName(entry.child))}</p>
+          <p class="list-row-copy">${utils.escapeHtml(entry.reasonCopy)}</p>
+        </div>
+        <span class="badge badge-warning">${utils.escapeHtml(entry.reasonTitle)}</span>
       </div>
     `).join("");
   }
 
-  function render() {
-    const reportState = getReportState();
-    renderTopStats(reportState);
-    renderMetrics(reportState);
-    renderBreakdowns(reportState);
+  function renderBirthdays(state) {
+    if (!state.birthdays.length) {
+      refs.birthdays.innerHTML = `<div class="empty-state"><h3>No upcoming birthdays</h3><p>Birthday reminders within the next 30 days will appear here.</p></div>`;
+      return;
+    }
+
+    refs.birthdays.innerHTML = state.birthdays.map((entry) => `
+      <div class="list-row">
+        <div class="list-row-main">
+          <p class="list-row-title">${utils.escapeHtml(utils.buildChildDisplayName(entry.child))}</p>
+          <p class="list-row-copy">${utils.escapeHtml(entry.dateLabel)}</p>
+        </div>
+        <span class="badge badge-soft">${utils.escapeHtml(entry.ageLabel)}</span>
+      </div>
+    `).join("");
   }
 
-  function buildWorkbookRows(reportState) {
-    const customers = app.store.peek().customers;
-    const customer = customers.find((item) => item.id === reportState.customerId);
+  function renderPollSummary() {
+    const polls = app.store.peek().polls;
+    if (!polls.length) {
+      refs.pollSummary.innerHTML = `<div class="empty-state"><h3>No poll data yet</h3><p>Poll participation will appear here once polls are created and votes are cast.</p></div>`;
+      return;
+    }
 
+    refs.pollSummary.innerHTML = polls.map((poll) => {
+      const totalVotes = app.store.peek().pollVotes.filter((vote) => vote.pollId === poll.id).length;
+      return `
+        <div class="list-row">
+          <div class="list-row-main">
+            <p class="list-row-title">${utils.escapeHtml(poll.title)}</p>
+            <p class="list-row-copy">${utils.escapeHtml(poll.visibility)}  |  ${utils.escapeHtml(poll.status)}</p>
+          </div>
+          <span class="badge badge-neutral">${utils.escapeHtml(String(totalVotes))} votes</span>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function workbookRows(state) {
     return {
       summary: [
-        { Metric: "From", Value: reportState.from },
-        { Metric: "To", Value: reportState.to },
-        { Metric: "Customer", Value: customer?.name || "All customers" },
-        { Metric: "Trips", Value: reportState.trips.length },
-        { Metric: "Income", Value: reportState.income },
-        { Metric: "Expenses", Value: reportState.totalExpenses },
-        { Metric: "Net profit", Value: reportState.net },
+        { Metric: "From", Value: state.range.from },
+        { Metric: "To", Value: state.range.to },
+        { Metric: "Attendance", Value: state.checkedIn.length },
+        { Metric: "Checked Out", Value: state.checkedOut.length },
+        { Metric: "First Visits", Value: state.firstVisitors.length },
+        { Metric: "Follow-up List", Value: state.absent.length },
       ],
-      trips: reportState.trips.map((trip) => ({
-        Date: utils.formatDate(trip.dateTime),
-        Time: utils.formatTime(trip.dateTime),
-        Pickup: trip.pickup,
-        Dropoff: trip.dropoff,
-        Customer: utils.customerNameFromState(customers, trip.customerId),
-        Passenger: trip.passengerName || "",
-        DistanceKm: trip.distanceKm,
-        DurationMin: trip.durationMin,
-        Fare: trip.fare,
-        Tips: trip.tips,
-        Total: utils.tripTotal(trip),
-        PaymentMethod: utils.PAYMENT_METHODS[trip.paymentMethod] || trip.paymentMethod,
-        Notes: trip.notes,
+      children: app.store.peek().children.map((child) => ({
+        Name: utils.buildChildDisplayName(child),
+        Class: app.findClass(child.classId)?.name || "",
+        Guardians: utils.buildGuardianSummary(child),
+        VisitorStatus: child.visitorStatus,
+        FamilyStatus: child.familyChurchStatus,
+        Allergies: child.allergies,
+        MedicalNotes: child.medicalNotes,
+        PickupCode: child.pickupCode,
       })),
-      expenses: reportState.expenses.map((expense) => ({
-        Date: expense.date,
-        Category: utils.EXPENSE_CATEGORIES[expense.category] || expense.category,
-        Description: expense.description,
-        Amount: expense.amount,
-        Quantity: expense.quantity,
-        ReceiptStored: expense.receipt?.assetId ? "Yes" : "No",
+      attendance: state.attendance.map((record) => ({
+        ServiceDate: record.serviceDate,
+        Child: utils.buildChildDisplayName(app.findChild(record.childId)),
+        Class: app.findClass(record.classId)?.name || "",
+        Status: record.status,
+        CheckIn: record.checkInTime,
+        CheckOut: record.checkOutTime,
+        PickedUpBy: record.pickedUpBy,
+        FirstVisit: record.firstVisit ? "Yes" : "No",
       })),
-      customers: app.store.peek().customers.map((customer) => ({
-        Name: customer.name,
-        BillingType: utils.BILLING_TYPES[customer.billingType] || customer.billingType,
-        Status: customer.status,
-        Phone: customer.phone,
-        Email: customer.email,
-        CompanyDetails: customer.companyDetails,
-        TaxNumber: customer.taxNumber,
-        RouteNotes: customer.routeNotes,
+      polls: app.store.peek().polls.map((poll) => ({
+        Title: poll.title,
+        Status: poll.status,
+        Visibility: poll.visibility,
+        StartDate: poll.startDate,
+        EndDate: poll.endDate,
+        VoteCount: app.store.peek().pollVotes.filter((vote) => vote.pollId === poll.id).length,
       })),
-      invoices: app.store.peek().invoices.map((invoice) => ({
-        InvoiceNumber: invoice.invoiceNumber,
-        Customer: invoice.customerSnapshot?.name || utils.customerNameFromState(customers, invoice.customerId),
-        IssueDate: invoice.issueDate,
-        DueDate: invoice.dueDate,
-        Template: invoice.template,
-        Total: invoice.totals.total,
+      votes: app.store.peek().pollVotes.map((vote) => ({
+        Poll: app.store.peek().polls.find((poll) => poll.id === vote.pollId)?.title || vote.pollId,
+        Voter: vote.voterLabel,
+        Options: vote.optionIds.join(", "),
+        CreatedAt: vote.createdAt,
+      })),
+      volunteers: app.store.peek().volunteers.map((volunteer) => ({
+        Name: volunteer.name,
+        Role: volunteer.role,
+        Group: volunteer.group,
+        Phone: volunteer.phone,
+        Active: volunteer.active ? "Yes" : "No",
+      })),
+      events: app.store.peek().events.map((eventItem) => ({
+        Title: eventItem.title,
+        DateTime: eventItem.dateTime,
+        Location: eventItem.location,
+        Audience: eventItem.audience,
+        Description: eventItem.description,
       })),
     };
   }
 
   async function exportWorkbook() {
-    refs.exportButton.disabled = true;
+    const state = getReportState();
+    const workbook = window.XLSX.utils.book_new();
+    const sheets = workbookRows(state);
 
-    try {
-      const reportState = getReportState();
-      if (reportState.invalidRange) {
-        throw new Error("Choose a valid report date range before exporting.");
-      }
+    Object.entries(sheets).forEach(([name, rows]) => {
+      const sheet = window.XLSX.utils.json_to_sheet(rows.length ? rows : [{ Notice: "No data" }]);
+      window.XLSX.utils.book_append_sheet(workbook, sheet, name.slice(0, 31));
+    });
 
-      if (!window.XLSX?.utils?.book_new || !window.XLSX?.write) {
-        throw new Error("Workbook export is not available right now.");
-      }
+    const buffer = window.XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const result = await utils.exportFile({
+      blob,
+      fileName: `${utils.APP_SLUG}-report-${utils.toLocalDateInputValue(new Date())}.xlsx`,
+      mode: "download",
+      title: `${utils.APP_NAME} report`,
+      text: `${utils.APP_NAME} report export`,
+    });
 
-      const workbookRows = buildWorkbookRows(reportState);
-      const workbook = window.XLSX.utils.book_new();
-
-      Object.entries(workbookRows).forEach(([sheetName, rows]) => {
-        const sheet = rows.length
-          ? window.XLSX.utils.json_to_sheet(rows)
-          : window.XLSX.utils.json_to_sheet([{ Message: "No data for this sheet." }]);
-        window.XLSX.utils.book_append_sheet(workbook, sheet, sheetName.slice(0, 31));
-      });
-
-      const customerLabel = reportState.customerId === "all"
-        ? "all-customers"
-        : utils.slugify(app.store.peek().customers.find((customer) => customer.id === reportState.customerId)?.name || "customer");
-      const fileName = `${utils.APP_SLUG}-report-${customerLabel}-${reportState.from}-to-${reportState.to}.xlsx`;
-      const workbookBytes = window.XLSX.write(workbook, {
-        bookType: "xlsx",
-        type: "array",
-      });
-
-      const result = await utils.exportFile({
-        blob: new Blob([workbookBytes], {
-          type: utils.mimeTypeFromFileName(fileName),
-        }),
-        fileName,
-        mode: "download",
-        title: `${utils.APP_NAME} workbook`,
-        text: `${utils.APP_NAME} report export`,
-      });
-
-      if (result.method === "cancelled") {
-        app.ui.toast("Workbook export cancelled.", "warning");
-        return;
-      }
-
-      const copy = result.method === "native-save"
-        ? "Workbook saved to your device."
-        : result.method === "native-share-fallback"
-          ? "Workbook opened in the share sheet so you can save it."
-          : result.method === "download"
-            ? "Workbook downloaded."
-            : "Workbook exported.";
-      app.ui.toast(copy, "success");
-    } catch (error) {
-      app.ui.toast(error.message || "Workbook export failed.", "warning");
-    } finally {
-      refs.exportButton.disabled = false;
+    if (result.method !== "cancelled") {
+      app.ui.toast("Workbook exported.", "success");
     }
   }
 
+  function printSummary() {
+    const state = getReportState();
+    const popup = window.open("", "_blank", "noopener,noreferrer,width=980,height=720");
+    if (!popup) {
+      app.ui.toast("Allow pop-ups to print the Sunday summary.", "warning");
+      return;
+    }
+
+    const classRows = state.classSummary.map((entry) => `<li>${utils.escapeHtml(entry.name)}: ${utils.escapeHtml(String(entry.count))}</li>`).join("");
+    const followUpRows = state.absent.map((entry) => `<li>${utils.escapeHtml(utils.buildChildDisplayName(entry.child))} - ${utils.escapeHtml(entry.reasonCopy)}</li>`).join("");
+
+    popup.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${utils.APP_NAME} Sunday Summary</title>
+        <style>
+          body { font-family: Aptos, Segoe UI, sans-serif; margin: 32px; color: #17223d; }
+          h1, h2 { font-family: "Aptos Display", "Segoe UI Variable Display", sans-serif; }
+          .brand { display:flex; align-items:center; gap:16px; margin-bottom:24px; }
+          .brand img { width:72px; height:72px; }
+          .cards { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:24px; }
+          .card { border:1px solid #d9e2f5; border-radius:16px; padding:16px; background:#f9fbff; }
+          ul { padding-left:20px; }
+        </style>
+      </head>
+      <body>
+        <div class="brand">
+          <img src="${utils.escapeHtml(app.store.peek().settings.logoUrl || "icons/agape-logo.svg")}" alt="Logo">
+          <div>
+            <h1>${utils.APP_NAME}</h1>
+            <div>${utils.escapeHtml(app.store.peek().settings.churchName)}</div>
+            <div>${utils.escapeHtml(utils.formatDate(new Date(), app.language()))}</div>
+          </div>
+        </div>
+        <div class="cards">
+          <div class="card"><strong>Checked in</strong><div>${state.checkedIn.length}</div></div>
+          <div class="card"><strong>Checked out</strong><div>${state.checkedOut.length}</div></div>
+          <div class="card"><strong>First visits</strong><div>${state.firstVisitors.length}</div></div>
+        </div>
+        <h2>Class breakdown</h2>
+        <ul>${classRows || "<li>No class attendance yet.</li>"}</ul>
+        <h2>Follow-up list</h2>
+        <ul>${followUpRows || "<li>No follow-up needed.</li>"}</ul>
+      </body>
+      </html>
+    `);
+    popup.document.close();
+    popup.focus();
+    popup.print();
+  }
+
+  function render() {
+    const state = getReportState();
+    renderTopStats(state);
+    renderTrendChart(state);
+    renderClassChart(state);
+    renderFollowUps(state);
+    renderBirthdays(state);
+    renderPollSummary();
+  }
+
   return {
-    getReportState,
     init,
     render,
   };
 };
+
+
+

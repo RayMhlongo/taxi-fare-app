@@ -1,17 +1,15 @@
-window.TaxiFareApp = window.TaxiFareApp || {};
+window.AgapeKidsApp = window.AgapeKidsApp || {};
 
 document.addEventListener("DOMContentLoaded", () => {
-  const { utils, storage } = window.TaxiFareApp;
+  const { utils, storage } = window.AgapeKidsApp;
 
   const store = storage.createStore();
   const uiState = {
     activeScreen: "dashboard",
     activeModalId: "",
-    dashboardRange: "month",
   };
 
   let toastTimer = null;
-  let incomeChart = null;
   let confirmResolver = null;
 
   const dom = {
@@ -24,33 +22,13 @@ document.addEventListener("DOMContentLoaded", () => {
     confirmAccept: document.getElementById("confirmAcceptBtn"),
     confirmCancel: document.getElementById("confirmCancelBtn"),
     toast: document.getElementById("toast"),
-    dashboardRangeChips: document.getElementById("dashboardRangeChips"),
-    dashboardTripCount: document.getElementById("dashboardTripCount"),
-    dashboardIncome: document.getElementById("dashboardIncome"),
-    dashboardExpenses: document.getElementById("dashboardExpenses"),
-    dashboardNet: document.getElementById("dashboardNet"),
-    dashboardRangeLabel: document.getElementById("dashboardRangeLabel"),
-    cashUpDateLabel: document.getElementById("cashUpDateLabel"),
-    cashUpTripCount: document.getElementById("cashUpTripCount"),
-    cashUpIncome: document.getElementById("cashUpIncome"),
-    cashUpExpenses: document.getElementById("cashUpExpenses"),
-    cashUpNet: document.getElementById("cashUpNet"),
-    cashCollected: document.getElementById("cashCollected"),
-    digitalCollected: document.getElementById("digitalCollected"),
-    dashboardInsights: document.getElementById("dashboardInsights"),
-    dashboardAddTripBtn: document.getElementById("dashboardAddTripBtn"),
-    dashboardAddExpenseBtn: document.getElementById("dashboardAddExpenseBtn"),
-    dashboardAddCustomerBtn: document.getElementById("dashboardAddCustomerBtn"),
-    dashboardOpenInvoicesBtn: document.getElementById("dashboardOpenInvoicesBtn"),
-    incomeChartCanvas: document.getElementById("incomeTrendChart"),
+    loader: document.getElementById("appLoader"),
   };
 
   const app = {
-    currency: () => store.peek().settings.currency || "ZAR",
+    api: null,
     dom,
     modules: {},
-    openScreen,
-    populateCustomerSelect,
     store,
     utils,
     ui: {
@@ -61,12 +39,248 @@ document.addEventListener("DOMContentLoaded", () => {
     },
   };
 
+  function language() {
+    return store.peek().settings.language || "en";
+  }
+
+  function todayKey() {
+    return utils.toLocalDateInputValue(new Date());
+  }
+
+  function findClass(classId) {
+    return store.peek().classes.find((item) => item.id === classId) || null;
+  }
+
+  function findChild(childId) {
+    return store.peek().children.find((item) => item.id === childId) || null;
+  }
+
+  function getTodayAttendance() {
+    return store.peek().attendance.filter((record) => record.serviceDate === todayKey());
+  }
+
+  function getTodayAttendanceForChild(childId) {
+    return getTodayAttendance().find((record) => record.childId === childId) || null;
+  }
+
+  function getAttendanceHistory(childId) {
+    return utils.sortByDateDesc(store.peek().attendance.filter((record) => record.childId === childId), "updatedAt");
+  }
+
+  function getChildrenByClass(classId) {
+    return store.peek().children.filter((child) => child.classId === classId && child.status === "active");
+  }
+
+  function getClassSummary(from = todayKey(), to = todayKey()) {
+    const attendance = store.peek().attendance.filter((record) => utils.isWithinRange(record.serviceDate, from, to) && record.status !== "absent");
+    const total = attendance.length || 1;
+    return utils.sortByName(store.peek().classes, (item) => item.name).map((classGroup) => {
+      const count = attendance.filter((record) => record.classId === classGroup.id).length;
+      return {
+        ...classGroup,
+        count,
+        percent: Math.max(6, Math.round((count / total) * 100)),
+      };
+    }).filter((entry) => entry.count > 0 || from === todayKey());
+  }
+
+  function getActivePolls() {
+    return store.peek().polls.filter((poll) => poll.status === "active");
+  }
+
+  function getVisiblePolls() {
+    const role = store.peek().settings.role;
+    return store.peek().polls.filter((poll) => {
+      if (role === "admin" || role === "leader") {
+        return true;
+      }
+      if (poll.visibility === "all") {
+        return true;
+      }
+      return poll.visibility === "volunteers" && role === "volunteer";
+    });
+  }
+
+  function getFollowUpChildren() {
+    const followUpWindow = store.peek().settings.followUpWindowDays || 14;
+    return store.peek().children
+      .filter((child) => child.status === "active")
+      .map((child) => {
+        const history = getAttendanceHistory(child.id);
+        const latestAttendance = history.find((record) => record.status === "checked-in" || record.status === "checked-out");
+        const missedToday = !getTodayAttendanceForChild(child.id);
+        const daysSinceLast = latestAttendance ? Math.abs(utils.daysBetween(latestAttendance.serviceDate, todayKey())) : 999;
+        const dueToAbsence = missedToday && latestAttendance && daysSinceLast >= 7;
+        const dueToFamily = child.familyChurchStatus === "unchurched" && child.visitorStatus !== "member";
+        const dueToFlag = child.needsFollowUp;
+
+        if (!dueToAbsence && !dueToFamily && !dueToFlag) {
+          return null;
+        }
+
+        return {
+          child,
+          reasonTitle: dueToFamily ? "Family follow-up" : dueToFlag ? "Requested follow-up" : "Absent child",
+          reasonCopy: dueToFamily
+            ? "Visitor family is marked as unchurched and should receive a warm follow-up."
+            : dueToFlag
+              ? "This child profile is marked for follow-up this week."
+              : `Last attendance was ${latestAttendance ? latestAttendance.serviceDate : "not yet recorded"}.`,
+        };
+      })
+      .filter(Boolean);
+  }
+
+  function getAbsentChildren() {
+    const followUps = getFollowUpChildren();
+    return followUps.filter((entry) => !getTodayAttendanceForChild(entry.child.id));
+  }
+
+  function getUpcomingEvents(limit = 4) {
+    return [...store.peek().events]
+      .filter((eventItem) => new Date(eventItem.dateTime).getTime() >= Date.now() - 86400000)
+      .sort((left, right) => new Date(left.dateTime) - new Date(right.dateTime))
+      .slice(0, limit)
+      .map((eventItem) => ({
+        ...eventItem,
+        audienceLabel: eventItem.audience === "all" ? "All families" : eventItem.audience,
+      }));
+  }
+
+  function getUpcomingBirthdays() {
+    const today = new Date();
+    return store.peek().children
+      .filter((child) => child.birthDate)
+      .map((child) => {
+        const birthDate = new Date(child.birthDate);
+        const nextBirthday = new Date(today.getFullYear(), birthDate.getMonth(), birthDate.getDate());
+        if (nextBirthday < today) {
+          nextBirthday.setFullYear(nextBirthday.getFullYear() + 1);
+        }
+        return {
+          child,
+          nextBirthday,
+          ageLabel: `${nextBirthday.getFullYear() - birthDate.getFullYear()} yrs`,
+          dateLabel: utils.formatDate(nextBirthday, language()),
+        };
+      })
+      .filter((entry) => utils.daysBetween(today, entry.nextBirthday) <= 30)
+      .sort((left, right) => left.nextBirthday - right.nextBirthday);
+  }
+
+  function getTopAttendanceStreaks() {
+    return store.peek().children
+      .map((child) => ({
+        child,
+        streak: utils.attendanceStreak(getAttendanceHistory(child.id)),
+      }))
+      .filter((entry) => entry.streak > 0)
+      .sort((left, right) => right.streak - left.streak)
+      .slice(0, 5);
+  }
+
+  function getDashboardSnapshot() {
+    const classSummary = getClassSummary(todayKey(), todayKey());
+    const checkedIn = getTodayAttendance().filter((record) => record.status === "checked-in");
+    const checkedOut = getTodayAttendance().filter((record) => record.status === "checked-out");
+    const firstVisitors = getTodayAttendance().filter((record) => record.firstVisit);
+    const followUps = getFollowUpChildren();
+    const volunteerSummary = utils.sortByName(store.peek().volunteers, (item) => item.name).slice(0, 6);
+    const alerts = [];
+
+    checkedIn.forEach((record) => {
+      const child = findChild(record.childId);
+      if (child && (child.allergies || child.medicalNotes)) {
+        alerts.push({
+          title: `${utils.buildChildDisplayName(child)} has a medical note`,
+          copy: child.allergies || child.medicalNotes,
+        });
+      }
+    });
+
+    if (store.peek().syncQueue.length) {
+      alerts.push({
+        title: "Offline changes waiting to sync",
+        copy: `${store.peek().syncQueue.length} update${store.peek().syncQueue.length === 1 ? "" : "s"} will sync when the connection is ready.`,
+      });
+    }
+
+    getUpcomingBirthdays().slice(0, 2).forEach((entry) => {
+      alerts.push({
+        title: `Birthday reminder for ${utils.buildChildDisplayName(entry.child)}`,
+        copy: entry.dateLabel,
+      });
+    });
+
+    return {
+      checkedIn,
+      checkedOut,
+      firstVisitors,
+      followUps,
+      classSummary,
+      volunteerSummary,
+      upcomingEvents: getUpcomingEvents(),
+      activePolls: getActivePolls(),
+      alerts: alerts.slice(0, 4),
+    };
+  }
+
+  function populateClassSelect(select, options = {}) {
+    if (!select) {
+      return;
+    }
+
+    const previous = select.value;
+    const classes = utils.sortByName(store.peek().classes, (item) => item.name);
+    const choices = [];
+    if (options.allowAll) {
+      choices.push({ value: "all", label: options.allLabel || "All classes" });
+    }
+    if (options.allowBlank) {
+      choices.push({ value: "", label: options.blankLabel || "No class" });
+    }
+    classes.forEach((classGroup) => {
+      choices.push({ value: classGroup.id, label: classGroup.name });
+    });
+
+    select.innerHTML = choices.map((choice) => `<option value="${utils.escapeHtml(choice.value)}">${utils.escapeHtml(choice.label)}</option>`).join("");
+    const values = new Set(choices.map((choice) => choice.value));
+    if (values.has(previous)) {
+      select.value = previous;
+    } else if (options.allowAll) {
+      select.value = "all";
+    } else if (!options.allowBlank && classes[0]) {
+      select.value = classes[0].id;
+    }
+  }
+
   function can(permission) {
-    const role = store.peek().settings.role || "owner";
+    const role = store.peek().settings.role || "admin";
     return utils.ROLE_PERMISSIONS[role]?.[permission] ?? true;
   }
 
-  app.can = can;
+  function queueSync(entityType, action, payload) {
+    const entry = {
+      id: utils.makeId("queue"),
+      entityType,
+      action,
+      payload,
+      createdAt: utils.nowISOString(),
+      attempts: 0,
+    };
+
+    store.update((draft) => {
+      draft.syncQueue.push(entry);
+      draft.settings.lastSyncStatus = `Queued ${draft.syncQueue.length} change${draft.syncQueue.length === 1 ? "" : "s"}.`;
+      return draft;
+    });
+
+    if (navigator.onLine && store.peek().settings.autoSync && app.api.isConfigured()) {
+      app.api.flushQueue().catch(() => {
+        // Preserve queue and surface the status elsewhere.
+      });
+    }
+  }
 
   function toast(message, type = "success") {
     window.clearTimeout(toastTimer);
@@ -94,12 +308,10 @@ document.addEventListener("DOMContentLoaded", () => {
     dom.modalShell.querySelectorAll(".modal").forEach((modal) => {
       modal.hidden = true;
     });
-
     if (confirmResolver) {
       confirmResolver(false);
       confirmResolver = null;
     }
-
     uiState.activeModalId = "";
   }
 
@@ -123,7 +335,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function openScreen(screenName) {
-    if ((screenName === "customers" && !can("customers")) || (screenName === "invoices" && !can("invoices")) || (screenName === "reports" && !can("reports"))) {
+    if ((screenName === "reports" && !can("reports"))
+      || (screenName === "settings" && !can("settings"))
+      || (screenName === "ministry" && !can("ministry"))
+      || (screenName === "polls" && !can("votePolls"))) {
       toast("This role cannot open that section.", "warning");
       return;
     }
@@ -132,199 +347,48 @@ document.addEventListener("DOMContentLoaded", () => {
     dom.screens.forEach((screen) => {
       screen.classList.toggle("active", screen.dataset.screen === screenName);
     });
-
     dom.appNav.querySelectorAll(".nav-btn").forEach((button) => {
       button.classList.toggle("active", button.dataset.screenTarget === screenName);
     });
   }
 
-  function populateCustomerSelect(select, options = {}) {
-    if (!select) {
-      return;
-    }
-
-    const previous = select.value;
-    const includeInactive = Boolean(options.includeInactive);
-    const customers = store.peek().customers.filter((customer) => includeInactive || customer.status === "active");
-    const choices = [];
-
-    if (options.allowAll) {
-      choices.push({ value: "all", label: options.allLabel || "All customers" });
-    }
-
-    if (options.allowBlank) {
-      choices.push({ value: "", label: options.blankLabel || "None" });
-    }
-
-    customers.forEach((customer) => {
-      const billingType = utils.BILLING_TYPES[customer.billingType] || customer.billingType;
-      choices.push({
-        value: customer.id,
-        label: `${customer.name} (${billingType})`,
-      });
-    });
-
-    select.innerHTML = choices.map((choice) => `<option value="${utils.escapeHtml(choice.value)}">${utils.escapeHtml(choice.label)}</option>`).join("");
-    const values = new Set(choices.map((choice) => choice.value));
-    if (values.has(previous)) {
-      select.value = previous;
-    } else if (options.allowAll) {
-      select.value = "all";
-    } else if (options.allowBlank) {
-      select.value = "";
-    }
-  }
-
-  function renderDashboard() {
-    const state = store.peek();
-    const range = utils.buildPresetRange(uiState.dashboardRange);
-    const periodTrips = state.trips.filter((trip) => utils.isWithinRange(trip.dateTime, range.from, range.to));
-    const periodExpenses = state.expenses.filter((expense) => utils.isWithinRange(expense.date, range.from, range.to));
-    const income = utils.sumBy(periodTrips, (trip) => utils.tripTotal(trip));
-    const expenses = utils.sumBy(periodExpenses, (expense) => utils.expenseTotal(expense));
-    const net = income - expenses;
-
-    dom.dashboardTripCount.textContent = String(periodTrips.length);
-    dom.dashboardIncome.textContent = utils.formatCurrency(income, app.currency());
-    dom.dashboardExpenses.textContent = utils.formatCurrency(expenses, app.currency());
-    dom.dashboardNet.textContent = utils.formatCurrency(net, app.currency());
-    dom.dashboardRangeLabel.textContent = range.label;
-
-    const todayRange = utils.buildPresetRange("today");
-    const todayTrips = state.trips.filter((trip) => utils.isWithinRange(trip.dateTime, todayRange.from, todayRange.to));
-    const todayExpenses = state.expenses.filter((expense) => utils.isWithinRange(expense.date, todayRange.from, todayRange.to));
-    const todayIncome = utils.sumBy(todayTrips, (trip) => utils.tripTotal(trip));
-    const todayExpenseTotal = utils.sumBy(todayExpenses, (expense) => utils.expenseTotal(expense));
-    const todayCash = utils.sumBy(todayTrips, (trip) => trip.cashCollected);
-    const todayDigital = utils.sumBy(todayTrips, (trip) => trip.digitalCollected);
-
-    dom.cashUpDateLabel.textContent = utils.formatDate(new Date());
-    dom.cashUpTripCount.textContent = String(todayTrips.length);
-    dom.cashUpIncome.textContent = utils.formatCurrency(todayIncome, app.currency());
-    dom.cashUpExpenses.textContent = utils.formatCurrency(todayExpenseTotal, app.currency());
-    dom.cashUpNet.textContent = utils.formatCurrency(todayIncome - todayExpenseTotal, app.currency());
-    dom.cashCollected.textContent = utils.formatCurrency(todayCash, app.currency());
-    dom.digitalCollected.textContent = utils.formatCurrency(todayDigital, app.currency());
-
-    const totalDistance = utils.sumBy(periodTrips, (trip) => trip.distanceKm);
-    const totalHours = utils.sumBy(periodTrips, (trip) => trip.durationMin / 60);
-    const routeTotals = Object.entries(utils.groupBy(periodTrips, (trip) => utils.buildRouteLabel(trip))).map(([label, trips]) => ({
-      label,
-      value: utils.sumBy(trips, (trip) => utils.tripTotal(trip)),
-    }));
-    const expenseTotals = Object.entries(utils.groupBy(periodExpenses, (expense) => utils.EXPENSE_CATEGORIES[expense.category] || "Other")).map(([label, expensesList]) => ({
-      label,
-      value: utils.sumBy(expensesList, (expense) => utils.expenseTotal(expense)),
-    }));
-    const dayTotals = Object.entries(utils.groupBy(periodTrips, (trip) => utils.toLocalDateInputValue(trip.dateTime))).map(([label, trips]) => ({
-      label,
-      value: utils.sumBy(trips, (trip) => utils.tripTotal(trip)),
-    }));
-
-    const insights = [
-      { label: "Average per trip", value: periodTrips.length ? utils.formatCurrency(income / periodTrips.length, app.currency()) : "No trips yet" },
-      { label: "Earnings per km", value: totalDistance ? utils.formatCurrency(income / totalDistance, app.currency()) : "No distance yet" },
-      { label: "Earnings per hour", value: totalHours ? utils.formatCurrency(income / totalHours, app.currency()) : "No duration yet" },
-      { label: "Most profitable route", value: utils.pickTopEntry(routeTotals)?.label || "No route data yet" },
-      { label: "Highest expense category", value: utils.pickTopEntry(expenseTotals)?.label || "No expenses yet" },
-      { label: "Best earning day", value: utils.pickTopEntry(dayTotals)?.label ? utils.formatDate(utils.pickTopEntry(dayTotals).label) : "No day data yet" },
-    ];
-
-    dom.dashboardInsights.innerHTML = insights.map((item) => `
-      <article class="metric-card">
-        <span class="metric-label">${utils.escapeHtml(item.label)}</span>
-        <strong class="metric-value">${utils.escapeHtml(item.value)}</strong>
-      </article>
-    `).join("");
-
-    renderChart();
-  }
-
-  function renderChart() {
-    if (!window.Chart || !dom.incomeChartCanvas) {
-      return;
-    }
-
-    const labels = [];
-    const data = [];
-
-    for (let index = 6; index >= 0; index -= 1) {
-      const date = utils.addDays(new Date(), -index);
-      const isoDate = utils.toLocalDateInputValue(date);
-      labels.push(new Intl.DateTimeFormat(utils.DEFAULT_LOCALE, { weekday: "short", day: "numeric" }).format(date));
-      data.push(utils.sumBy(store.peek().trips.filter((trip) => utils.toLocalDateInputValue(trip.dateTime) === isoDate), (trip) => utils.tripTotal(trip)));
-    }
-
-    if (incomeChart) {
-      incomeChart.destroy();
-    }
-
-    incomeChart = new window.Chart(dom.incomeChartCanvas, {
-      type: "bar",
-      data: {
-        labels,
-        datasets: [{
-          data,
-          backgroundColor: "#0b8f81",
-          borderRadius: 10,
-          borderSkipped: false,
-        }],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-        },
-        scales: {
-          x: {
-            grid: { display: false },
-          },
-          y: {
-            beginAtZero: true,
-            ticks: {
-              callback: (value) => utils.formatCurrency(value, app.currency()),
-            },
-          },
-        },
-      },
-    });
-  }
-
   function syncPermissions() {
-    const role = store.peek().settings.role;
     dom.appNav.querySelectorAll(".nav-btn").forEach((button) => {
       const target = button.dataset.screenTarget;
-      const allowed = (target !== "customers" || can("customers"))
-        && (target !== "invoices" || can("invoices"))
-        && (target !== "reports" || can("reports"));
+      const allowed = (target !== "reports" || can("reports"))
+        && (target !== "settings" || can("settings"))
+        && (target !== "ministry" || can("ministry"))
+        && (target !== "polls" || can("votePolls"));
       button.hidden = !allowed;
     });
 
-    dom.dashboardAddCustomerBtn.hidden = !can("customers");
-    dom.dashboardOpenInvoicesBtn.hidden = !can("invoices");
-
-    if ((uiState.activeScreen === "customers" && !can("customers")) || (uiState.activeScreen === "invoices" && !can("invoices")) || (uiState.activeScreen === "reports" && !can("reports"))) {
+    if ((uiState.activeScreen === "reports" && !can("reports"))
+      || (uiState.activeScreen === "settings" && !can("settings"))
+      || (uiState.activeScreen === "ministry" && !can("ministry"))
+      || (uiState.activeScreen === "polls" && !can("votePolls"))) {
       openScreen("dashboard");
     }
-
-    dom.dashboardRangeChips.querySelectorAll(".chip").forEach((chip) => {
-      chip.classList.toggle("active", chip.dataset.dashboardRange === uiState.dashboardRange);
-    });
-
-    document.getElementById("clearDataBtn").disabled = !can("destructiveData");
-    document.getElementById("restoreBackupBtn").disabled = !can("destructiveData");
   }
 
   function renderAll() {
-    app.modules.settings.render();
     syncPermissions();
-    renderDashboard();
-    app.modules.trips.render();
-    app.modules.expenses.render();
-    app.modules.customers.render();
+    app.modules.settings.render();
+    app.modules.dashboard.render();
+    app.modules.children.render();
+    app.modules.checkin.render();
+    app.modules.ministry.render();
+    app.modules.polls.render();
     app.modules.reports.render();
-    app.modules.invoices.render();
+  }
+
+  function registerServiceWorker() {
+    if (!("serviceWorker" in navigator)) {
+      return;
+    }
+
+    navigator.serviceWorker.register("./service-worker.js").catch(() => {
+      // Ignore local preview registration issues.
+    });
   }
 
   function bindGlobalEvents() {
@@ -333,36 +397,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (button) {
         openScreen(button.dataset.screenTarget);
       }
-    });
-
-    dom.dashboardRangeChips.addEventListener("click", (event) => {
-      const button = event.target.closest("[data-dashboard-range]");
-      if (!button) {
-        return;
-      }
-
-      uiState.dashboardRange = button.dataset.dashboardRange;
-      renderDashboard();
-      syncPermissions();
-    });
-
-    dom.dashboardAddTripBtn.addEventListener("click", () => app.modules.trips.openCreate());
-    dom.dashboardAddExpenseBtn.addEventListener("click", () => app.modules.expenses.openCreate());
-    dom.dashboardAddCustomerBtn.addEventListener("click", () => {
-      if (!can("customers")) {
-        toast("Owner or Manager mode is required for customers.", "warning");
-        return;
-      }
-
-      app.modules.customers.openCreate();
-    });
-    dom.dashboardOpenInvoicesBtn.addEventListener("click", () => {
-      if (!can("invoices")) {
-        toast("Owner or Manager mode is required for invoices.", "warning");
-        return;
-      }
-
-      openScreen("invoices");
     });
 
     dom.modalShell.addEventListener("click", (event) => {
@@ -381,32 +415,75 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function registerServiceWorker() {
-    if (!("serviceWorker" in navigator)) {
-      return;
+  function applyQueryState() {
+    const params = new URLSearchParams(window.location.search);
+    const screen = params.get("screen");
+    const pollSlug = params.get("poll");
+
+    if (screen && dom.screens.some((item) => item.dataset.screen === screen)) {
+      openScreen(screen);
     }
 
-    navigator.serviceWorker.register("./service-worker.js").catch(() => {
-      // Ignore registration failures in local preview mode.
-    });
+    if (pollSlug) {
+      window.requestAnimationFrame(() => {
+        const target = document.getElementById(`poll-card-${pollSlug}`);
+        if (target) {
+          target.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      });
+    }
   }
 
-  app.modules.trips = window.TaxiFareApp.createTripsModule(app);
-  app.modules.expenses = window.TaxiFareApp.createExpensesModule(app);
-  app.modules.customers = window.TaxiFareApp.createCustomersModule(app);
-  app.modules.reports = window.TaxiFareApp.createReportsModule(app);
-  app.modules.settings = window.TaxiFareApp.createSettingsModule(app);
-  app.modules.invoices = window.TaxiFareApp.createInvoicesModule(app);
+  function hideLoader() {
+    window.setTimeout(() => {
+      dom.loader.classList.add("is-hidden");
+    }, 120);
+  }
+
+  app.language = language;
+  app.todayKey = todayKey;
+  app.findClass = findClass;
+  app.findChild = findChild;
+  app.getTodayAttendance = getTodayAttendance;
+  app.getTodayAttendanceForChild = getTodayAttendanceForChild;
+  app.getAttendanceHistory = getAttendanceHistory;
+  app.getChildrenByClass = getChildrenByClass;
+  app.getClassSummary = getClassSummary;
+  app.getActivePolls = getActivePolls;
+  app.getVisiblePolls = getVisiblePolls;
+  app.getFollowUpChildren = getFollowUpChildren;
+  app.getAbsentChildren = getAbsentChildren;
+  app.getUpcomingEvents = getUpcomingEvents;
+  app.getUpcomingBirthdays = getUpcomingBirthdays;
+  app.getTopAttendanceStreaks = getTopAttendanceStreaks;
+  app.getDashboardSnapshot = getDashboardSnapshot;
+  app.populateClassSelect = populateClassSelect;
+  app.can = can;
+  app.queueSync = queueSync;
+  app.openScreen = openScreen;
+  app.syncPermissions = syncPermissions;
+
+  app.api = window.AgapeKidsApp.createApiService(app);
+  app.modules.dashboard = window.AgapeKidsApp.createDashboardModule(app);
+  app.modules.children = window.AgapeKidsApp.createChildrenModule(app);
+  app.modules.checkin = window.AgapeKidsApp.createCheckinModule(app);
+  app.modules.ministry = window.AgapeKidsApp.createMinistryModule(app);
+  app.modules.polls = window.AgapeKidsApp.createPollsModule(app);
+  app.modules.reports = window.AgapeKidsApp.createReportsModule(app);
+  app.modules.settings = window.AgapeKidsApp.createSettingsModule(app);
 
   bindGlobalEvents();
-  app.modules.trips.init();
-  app.modules.expenses.init();
-  app.modules.customers.init();
+  app.modules.dashboard.init();
+  app.modules.children.init();
+  app.modules.checkin.init();
+  app.modules.ministry.init();
+  app.modules.polls.init();
   app.modules.reports.init();
   app.modules.settings.init();
-  app.modules.invoices.init();
 
   store.subscribe(renderAll);
   renderAll();
+  applyQueryState();
   registerServiceWorker();
+  hideLoader();
 });

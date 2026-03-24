@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title>Agape Christian Centre logo mark</title>
+  <desc>Warm church badge with roof, cross, and child-friendly heart detail for Agape Kids.</desc>
+  <defs>
+    <linearGradient id="bg" x1="32" y1="24" x2="214" y2="228" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#5aa9ff"/>
+      <stop offset="52%" stop-color="#3568dc"/>
+      <stop offset="100%" stop-color="#244aa8"/>
+    </linearGradient>
+    <linearGradient id="sun" x1="48" y1="40" x2="146" y2="122" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffe29b"/>
+      <stop offset="100%" stop-color="#f5c76c"/>
+    </linearGradient>
+  </defs>
+  <rect x="18" y="18" width="220" height="220" rx="56" fill="url(#bg)"/>
+  <circle cx="86" cy="76" r="34" fill="url(#sun)" opacity="0.95"/>
+  <path d="M54 154 126 92l76 62" fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+  <path d="M86 146v50h86v-50" fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round" stroke-width="16"/>
+  <path d="M128 98v46" fill="none" stroke="#f5c76c" stroke-linecap="round" stroke-width="14"/>
+  <path d="M112 114h32" fill="none" stroke="#f5c76c" stroke-linecap="round" stroke-width="14"/>
+  <path d="M92 172c10 12 22 18 36 18s26-6 36-18" fill="none" stroke="#9fe6d9" stroke-linecap="round" stroke-width="12"/>
+  <circle cx="104" cy="154" r="10" fill="#9fe6d9"/>
+  <circle cx="152" cy="154" r="10" fill="#9fe6d9"/>
+</svg>

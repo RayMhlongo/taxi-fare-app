@@ -55,4 +55,4 @@ async function rebuildWww() {
 await copyToRootVendor();
 await rebuildWww();
 
-console.log("InsightRide web assets built and synced to www.");
+console.log("Agape Kids web assets built and synced to www.");
