@@ -1,8 +1,8 @@
-﻿{
+{
   "name": "taxi-fare-app",
   "version": "1.0.0",
   "private": true,
-  "description": "Agape Kids is a mobile-first children's church management app for Agape Christian Centre",
+  "description": "InsightRide by Data Insights by Ray: an offline-first driver operations app for South Africa",
   "scripts": {
     "build": "node scripts/build.mjs",
     "test:e2e": "playwright test",
@@ -25,6 +25,3 @@
     "@playwright/test": "^1.58.2"
   }
 }
-
-
-

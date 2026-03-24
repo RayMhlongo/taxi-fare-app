@@ -1,4 +1,4 @@
-﻿name: Build Agape Kids APK
+name: Build Android APK
 
 on:
   push:
@@ -86,7 +86,7 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: agape-kids-debug-apk
+          name: insightride-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
 
@@ -95,29 +95,28 @@ jobs:
         with:
           files: android/app/build/outputs/apk/debug/app-debug.apk
           tag_name: apk-build-${{ github.run_number }}
-          release_name: Agape Kids APK Build ${{ github.run_number }}
+          release_name: InsightRide APK Build ${{ github.run_number }}
           body: |
-            # Agape Kids - Android APK
+            # InsightRide - Android APK
 
             Build date: ${{ github.event.head_commit.timestamp }}
 
             Included in this build:
-            - Mobile-first children's church operations dashboard
-            - Child registration, class grouping, and attendance workflows
-            - Check-in and pickup verification improvements
-            - Polls and lightweight ministry voting
-            - Sunday summary reporting and workbook exports
-            - Offline-friendly PWA and Google Sheets sync readiness
+            - Modular offline-first app structure
+            - Trip and expense editing
+            - Customer management and customer-linked trips
+            - JSON backup and restore
+            - Receipt image handling
+            - Premium monthly invoice PDF generation
+            - Improved dashboard insights and reports
+            - Native save/share export flows for backups, workbooks, and invoices
 
             Install steps:
             1. Download the APK file below.
             2. Transfer it to your Android phone.
             3. Open the file and allow app installs if prompted.
-            4. Launch Agape Kids and start serving families.
+            4. Launch InsightRide and start logging trips offline.
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-
-
